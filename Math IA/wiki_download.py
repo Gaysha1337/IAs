@@ -1,4 +1,4 @@
-import requests, csv
+import requests, csv, re
 from bs4 import BeautifulSoup
 import pandas as pd
 
@@ -14,8 +14,10 @@ writer = csv.writer(f, delimiter=";")
 for row in tbody[1:-1]:
     cols = row.findChildren(recursive=False)
     del cols[1] # Gets rid of the empty col
-    cols = [elem.text.strip() for elem in cols]    
+
+    # The line below show percentage increases
+    # cols = [elem.text.strip() for elem in cols] 
+    
+    # The regex removes percentage increases
+    cols = [re.sub("\(.*\)", "", elem.text.strip()) for elem in cols]
     writer.writerow(cols)
-    #print(cols)
-
-
