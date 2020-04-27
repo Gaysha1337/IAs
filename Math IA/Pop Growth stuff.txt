@@ -1,0 +1,43 @@
+ Ideas:
+1. Model Owl population in Switzerland:
+  - Exponential graph:
+	- Number of owl (Y) per Year (X)  (Exponential graph)
+  - Logistic graph
+
+  - Expansion ideas: 
+        - Finding the optimal population for owls
+	- One idea could be finding a function that fits those number you obtained and try to fit a function to it. 
+	  You can use algebra/Matrices/ or a computer software and compare the R2 and other correlation values to come up with a certain function, 
+	  which you will use to predict the population in the future.
+
+2. How does a disease spread through a population:
+	- How long would it take for us all to be wiped out if a deadly influenza spreads throughout the population?
+
+3. Coverage: Calculation of rate of deforestation, and afforestation. How long will our forests last?:
+
+
+
+Maths that could be used:
+- Logistic graph
+- Exponentional graph
+- Differential equations
+- Piecewise functions (https://www.mathsisfun.com/sets/functions-piecewise.html)
+- Different equations to model population growth (https://en.wikipedia.org/wiki/Population_model#Equations) (I wanna look at Logistic growth and Species-area relationship)
+
+
+Links:
+
+Topic list: https://www.lanternaeducation.com/ib-blog/50-ib-maths-ia-topic-ideas/
+
+Bird data set: https://www.vogelwarte.ch/en/projects/population-trends/breeding-bird-index/#alpine-chough
+
+Math equations + how to do it:
+- https://www.nature.com/scitable/knowledge/library/an-introduction-to-population-growth-84225544/ (an intro to modelling pop. growth (more in depth than khan academy))
+- https://www.khanacademy.org/science/biology/ecology/population-growth-and-regulation/a/exponential-logistic-growth (Khan Academy's intro)
+- https://www.youtube.com/watch?v=IYFkXWlgC_w (Khan academy's: modelling pop. growth with differential equations)
+- https://www.sciencedirect.com/science/article/pii/S0304380015003750 (Really indepth article on how to model pop.s)
+
+
+IB Survival:
+- https://www.ibsurvival.com/topic/26992-math-exploration-on-population-growth/
+https://www.ibsurvival.com/topic/25036-math-exploration-help-modeling-the-population-growth-of-the-world/ (has good ideas on how to expand IA)

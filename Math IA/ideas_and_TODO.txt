@@ -1,0 +1,4 @@
+TODO:
+
+- Get formulas for multilvar regression and simple regression
+- Develop means of testing the regressions (F test and R squared)
