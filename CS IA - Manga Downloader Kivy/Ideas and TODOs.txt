@@ -1,0 +1,26 @@
+Ideas/Things to focus on:
+
+How is this app gonna handle on going manga?
+    Maybe send a notification? (how can I do this in python)
+
+Where am I gonna get the manga from?
+
+
+
+Pages:
+
+1. Homepage:
+    Gridlayout of most recent manga (user specifies grid dimensions)
+2. Genres (Might be better if it was a side menu on the home page)
+3. Recommendations:
+    This would require the user to be signed into MAL
+4. Settings (Gear icon):
+    Downloads:  
+        Where should they be saved to
+
+    Sorting:
+        Alphabetically
+        Most recently downloaded
+
+    Logins to external sites:
+        MAL 
