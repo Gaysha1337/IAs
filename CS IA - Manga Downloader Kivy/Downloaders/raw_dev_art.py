@@ -1,15 +1,27 @@
-import requests
-from bs4 import BeautifulSoup
-from terminaltables import AsciiTable
+from functools import partial
+from os import stat
 
+from kivy.clock import Clock, mainthread
+import requests, os, re
+from bs4 import BeautifulSoup
+from tqdm import tqdm
+from kivymd.toast import toast
+from kivymd.app import MDApp
+
+if __name__ != "__main__":
+    from utils import create_manga_dirs, download_cover_img, download_manga
+
+# Japanese Manga Downloader
 class RawDevArt:
     def __init__(self, query=None):
-        #self.query = query
+        # Need to find a way to get manga from all pages
+        # https://rawdevart.com/search/?page=2&title=the
         self.query_url = "https://rawdevart.com/search/?title={}".format(query.strip().replace(" ","+"))
         self.request_error_code = None
         self.popup_msg = None
         self.hasErrorOccured = False
-        print(self.query_url)
+        self.master = MDApp.get_running_app()
+
         try: 
             request_obj = requests.get(self.query_url)
             self.request_error_code = request_obj.status_code
@@ -18,7 +30,6 @@ class RawDevArt:
             if manga_divs == None:
                 self.hasErrorOccured = True
                 self.popup_msg = f"No manga called {query} was found while searching Raw Dev Art"
-                print(self.popup_msg)
                 manga_divs, self.manga_data = [], {}
 
             else:                 
@@ -27,42 +38,106 @@ class RawDevArt:
                 self.manga_covers = ["https://rawdevart.com" + div.select_one("img.img-fluid").get("src") for div in manga_divs]
                 self.manga_data = dict(zip(self.manga_choices, zip(self.manga_links, self.manga_covers)))
                 #print(self.manga_data)
-                print(self.manga_covers)
+                #print(self.manga_covers)
                 
         except:
-            self.popup_msg = "Error: The app can't connect to the site."
+            self.popup_msg = "Error: The app can't connect to the site. Check internet connection; Site may be blocked"
             self.hasErrorOccured = True
             print("Error: can't connect to Raw Dev Art")
 
-"""
 
-#query = input("Type a manga title (can be a keyword): ")
+    # Root is the running app
+    # Links is a tuple contain: A link to the cover image and the download link        
+    @staticmethod
+    def download_manga(root,tile,title,links):
+        title = re.sub(r'[\\/*?:"<>|]',"",title) # Sanitize title name for dir/file creation
+        manga_download_link, cover_img_link = links
+        
+        #create_manga_dirs(title) # After being called, the user should be in the dir for that manga
+                
+        download_cover_img(cover_img_link, cover_img_link.split("/")[-1])
+        soup = BeautifulSoup(requests.get(manga_download_link).content, features="lxml")
 
-#query_url = "https://rawdevart.com/search/?title={}".format(query.strip().replace(" ","+"))
+        # Get the chapter images and the title of the chapter
+        chapter_links = [{"chapter-imgs-link":"https://rawdevart.com" + elem.get("href"), "chapter":elem.get("title")} for elem in soup.select("div.list-group-item a", text=True)][::-1]
 
-query_url = "https://rawdevart.com/search/?title=kage+no"
-request_query_html = requests.get(query_url).content
+        progress_bar = tqdm(chapter_links, total=len(chapter_links))
+        tile.progressbar.max = len(chapter_links)
+        for index, link_dict in enumerate(chapter_links):
+            chapter, img_url = link_dict.get("chapter"), link_dict.get("chapter-imgs-link") 
+            chapter = re.sub(r'[\\/*?:"<>|]',"",chapter) # Sanitize chapter name for dir/file creation
+            soup_ = BeautifulSoup(requests.get(img_url).content, features="lxml")
+            # TODO: Will this work on android ?
+            current_chapter_dir = os.path.join(root.japanese_manga_dir,title,chapter)
+            #print(os.getcwd(), "cwd")
+            if not os.path.isdir(current_chapter_dir):
+                os.mkdir(current_chapter_dir)
+            os.chdir(current_chapter_dir)
+            imgs_list = soup_.select("div.mb-3 img.img-fluid.not-lazy")
+            for img in imgs_list:          
+                response = requests.get(img.get('data-src'), stream=True)
+                filename = f"{title} {chapter} - {img.get('data-src').split('/')[-1]}"
+                
+                total_size_in_bytes, block_size= int(response.headers.get('content-length', 0)), 1024 #1 Kibibyte
+                #progress_bar = tqdm(desc=filename, total=total_size_in_bytes, unit='B', unit_scale=True, unit_divisor=1024)
+                with open(filename, "wb") as f:
+                    for chunk in response.iter_content(block_size):
+                        f.write(chunk)
+                
+                #progress_bar.close()
+            progress_bar.update(1)
+            Clock.schedule_once(lambda args: RawDevArt.trigger_call(tile, 1), -1)
+            #break    
+        progress_bar.close()
+        print("remove break near line 106 for full testing")
+    @staticmethod
+    def trigger_call(tile,val):
+        tile.progressbar.value+= val
 
-soup = BeautifulSoup(request_query_html,"html.parser")
+def trash():
+    """
+    #query = input("Type a manga title (can be a keyword): ")
 
-#print(soup.find("div",attrs={"class":".row mb-3"}))
+    #query_url = "https://rawdevart.com/search/?title={}".format(query.strip().replace(" ","+"))
 
-manga_divs = soup.select("div.row.mb-3 > div.col-6.col-md-4.col-lg-3.col-xl-2.px-1.mb-2.lister-layout")
+    query_url = "https://rawdevart.com/search/?title=kage+no"
+    request_query_html = requests.get(query_url).content
 
-query_info = []#[{"title":div.select_one("a.head").text.replace("\n",""), "url":"https://rawdevart.com" + div.select_one("a.head").get("href"), "cover_img":"https://rawdevart.com" + div.select_one("img.img-fluid").get("src")} for div in manga_divs]
+    soup = BeautifulSoup(request_query_html,"html.parser")
 
-for div in manga_divs:
-    q_cover_img = div.select_one("img.img-fluid").get("src")
-    q_url = div.select_one("a.head").get("href")
-    q_title = div.select_one("a.head").text.replace("\n","")
+    #print(soup.find("div",attrs={"class":".row mb-3"}))
 
-    query_info.append({"title":q_title, "url":"https://rawdevart.com" +q_url, "cover_img":"https://rawdevart.com" + q_cover_img})
+    manga_divs = soup.select("div.row.mb-3 > div.col-6.col-md-4.col-lg-3.col-xl-2.px-1.mb-2.lister-layout")
 
-for i in query_info:
-    print(i.get("url"))
-    
-    chapter_urls = None
-"""
+    query_info = []#[{"title":div.select_one("a.head").text.replace("\n",""), "url":"https://rawdevart.com" + div.select_one("a.head").get("href"), "cover_img":"https://rawdevart.com" + div.select_one("img.img-fluid").get("src")} for div in manga_divs]
+
+    for div in manga_divs:
+        q_cover_img = div.select_one("img.img-fluid").get("src")
+        q_url = div.select_one("a.head").get("href")
+        q_title = div.select_one("a.head").text.replace("\n","")
+
+        query_info.append({"title":q_title, "url":"https://rawdevart.com" +q_url, "cover_img":"https://rawdevart.com" + q_cover_img})
+
+    for i in query_info:
+        print(i.get("url"))
+        
+        chapter_urls = None
+    """
 
 if __name__ == "__main__":
-    x = RawDevArt("Kage no")
+
+    links = ('https://rawdevart.com/comic/kage-no-jitsuryokusha-ni-naritakute-shadow-gaiden/', 'https://rawdevart.com/media/comic/kage-no-jitsuryokusha-ni-naritakute-shadow-gaiden/covers/Kage_no_Jitsuryokusha_ni_Naritakute_Shadow_Gaiden_1.jpg.320x320_q85.jpg')
+    #x = RawDevArt("Kage no")
+    title, download_link, cover_link = "Kage no Jitsuryokusha ni Naritakute", *links
+    print(download_link)
+    #x.download_manga(None, title, links)
+
+    r = requests.get(download_link)
+    
+    base = "https://rawdevart.com"
+    x = requests.utils.urlparse(download_link)
+    soup = BeautifulSoup(r.content,features="lxml")
+
+    chapter_links = ["https://rawdevart.com" + elem.get("href") for elem in soup.select("div.list-group-item a", text=True)]
+    print(chapter_links)
+        

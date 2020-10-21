@@ -1,61 +1,49 @@
-# Program to explain how to use recycleview in kivy
-import os
-# import the kivy module
+import os, threading
+from threading import Thread
+from Homepage import MangaCheckBox
+
+from kivy.core.window import Window
+from kivy.uix.label import Label
 from kivymd.app import MDApp
-from kivy.properties import ListProperty, DictProperty
+from kivy.clock import Clock, mainthread
+from kivy.properties import ListProperty, DictProperty, NumericProperty
 from kivy.uix.boxlayout import BoxLayout
-
-
-from kivymd.uix.button import MDRectangleFlatButton, MDIconButton, MDRectangleFlatIconButton
+from kivymd.uix.button import MDRaisedButton, MDRectangleFlatButton, MDIconButton, MDRectangleFlatIconButton
 
 from kivy.uix.screenmanager import Screen, ScreenManager
+
 from kivymd.uix.gridlayout import GridLayout
-from kivy.uix.button import Button
-from kivy.uix.label import Label
 from kivymd.uix.gridlayout import MDGridLayout
-from kivymd.uix.relativelayout import MDRelativeLayout
+#from kivymd.uix.relativelayout import MDRelativeLayout
+from kivymd.uix.stacklayout import MDStackLayout
+
 from kivy.uix.relativelayout import RelativeLayout
 
 from kivymd.uix.imagelist import SmartTileWithLabel
 from kivymd.uix.button import MDIconButton
+from kivymd.uix.label import MDLabel
+from kivymd.toast import toast
 
 from functools import partial
 from kivy.utils import platform  # Used to tell if platform is android
+from kivymd.uix.progressbar import MDProgressBar 
+from kivymd.uix.card import MDCard, MDSeparator
 
+# Downloaders
 from Downloaders.manga_nelo_OOP import MangaNelo
-from kivy.network.urlrequest import UrlRequest
+from Downloaders.raw_dev_art import RawDevArt
+from Downloaders.kissmanga import KissManga
+from Downloaders.Senmanga import SenManga
 
 # The ScrollView widget provides a scrollable view
 from kivy.uix.recycleview import RecycleView
 from kivy.uix.scrollview import ScrollView
-from kivymd.stiffscroll import StiffScrollEffect
 
 from kivy.lang import Builder
-
+from kivy.graphics import Rectangle, Color
+from utils import download_manga, create_manga_dirs
 
 from kivy_strings import manga_display_kv_str
-
-
-"""
-manga_data_list = [
-    {'chapter_number': 1, 'chapter_name': 'Dark Blood Age Chapter 1', 'img_links': [
-        'https://s5.mkklcdnv5.com/mangakakalot/s2/ss923461/chapter_1/1.jpg']},
-    {'chapter_number': 2, 'chapter_name': 'Dark Blood Age Chapter 2', 'img_links': [
-        'https://s5.mkklcdnv5.com/mangakakalot/s2/ss923461/chapter_2/1.jpg']},
-    {'chapter_number': 3, 'chapter_name': 'Dark Blood Age Chapter 3', 'img_links': [
-        'https://s5.mkklcdnv5.com/mangakakalot/s2/ss923461/chapter_3/1.jpg']},
-    {'chapter_number': 4, 'chapter_name': 'Dark Blood Age Chapter 4', 'img_links': [
-        'https://s5.mkklcdnv5.com/mangakakalot/s2/ss923461/chapter_4/1.jpg']},
-    {'chapter_number': 5, 'chapter_name': 'Dark Blood Age Chapter 5', 'img_links': [
-        'https://s5.mkklcdnv5.com/mangakakalot/s2/ss923461/chapter_5/1.jpg', 'https://s5.mkklcdnv5.com/mangakakalot/s2/ss923461/chapter_5/2.jpg']},
-    {'chapter_number': 6, 'chapter_name': 'Dark Blood Age Chapter 6', 'img_links': [
-        'https://s5.mkklcdnv5.com/mangakakalot/s2/ss923461/chapter_6/1.jpg']},
-    {'chapter_number': 7, 'chapter_name': 'Dark Blood Age Chapter 7', 'img_links': [
-        'https://s5.mkklcdnv5.com/mangakakalot/s2/ss923461/chapter_7/1.jpg', 'https://s5.mkklcdnv5.com/mangakakalot/s2/ss923461/chapter_7/2.jpg']},
-    {'chapter_number': 8, 'chapter_name': 'Dark Blood Age Chapter 8', 'img_links': ['https://s5.mkklcdnv5.com/mangakakalot/s2/ss923461/chapter_8/1.jpg']}, {'chapter_number': 9, 'chapter_name': 'Dark Blood Age Chapter 9', 'img_links': ['https://s5.mkklcdnv5.com/mangakakalot/s2/ss923461/chapter_9/1.jpg', 'https://s5.mkklcdnv5.com/mangakakalot/s2/ss923461/chapter_9/2.jpg']}, {'chapter_number': 10, 'chapter_name': 'Dark Blood Age Chapter 10', 'img_links': ['https://s5.mkklcdnv5.com/mangakakalot/s2/ss923461/chapter_10/1.jpg']}, {'chapter_number': 11, 'chapter_name': 'Dark Blood Age Chapter 11', 'img_links': ['https://s5.mkklcdnv5.com/mangakakalot/s2/ss923461/chapter_11/1.jpg']}, {'chapter_number': 12, 'chapter_name': 'Dark Blood Age Chapter 12', 'img_links': ['https://s5.mkklcdnv5.com/mangakakalot/s2/ss923461/chapter_12/1.jpg', 'https://s5.mkklcdnv5.com/mangakakalot/s2/ss923461/chapter_12/2.jpg']}, {'chapter_number': 13, 'chapter_name': 'Dark Blood Age Chapter 13', 'img_links': ['https://s5.mkklcdnv5.com/mangakakalot/s2/ss923461/chapter_13/1.jpg']}, {'chapter_number': 14, 'chapter_name': 'Dark Blood Age Chapter 14', 'img_links': ['https://s5.mkklcdnv5.com/mangakakalot/s2/ss923461/chapter_14/1.jpg']}, {'chapter_number': 15, 'chapter_name': 'Dark Blood Age Chapter 15', 'img_links': ['https://s8.mkklcdnv8.com/mangakakalot/s2/ss923461/chapter_15/1.jpg', 'https://s8.mkklcdnv8.com/mangakakalot/s2/ss923461/chapter_15/2.jpg']}, {'chapter_number': 16, 'chapter_name': 'Dark Blood Age Chapter 16', 'img_links': ['https://s8.mkklcdnv8.com/mangakakalot/s2/ss923461/chapter_16/1.jpg']}, {'chapter_number': 17, 'chapter_name': 'Dark Blood Age Chapter 17', 'img_links': ['https://s8.mkklcdnv8.com/mangakakalot/s2/ss923461/chapter_17/1.jpg', 'https://s8.mkklcdnv8.com/mangakakalot/s2/ss923461/chapter_17/2.jpg']}, {'chapter_number': 18, 'chapter_name':
-'Dark Blood Age Chapter 18', 'img_links': ['https://s8.mkklcdnv8.com/mangakakalot/s2/ss923461/chapter_18/1.jpg']}, {'chapter_number': 19, 'chapter_name': 'Dark Blood Age Chapter 19', 'img_links': ['https://s8.mkklcdnv8.com/mangakakalot/s2/ss923461/chapter_19/1.jpg']}, {'chapter_number': 20, 'chapter_name': 'Dark Blood Age Chapter 20', 'img_links': ['https://s8.mkklcdnv8.com/mangakakalot/s2/ss923461/chapter_20/1.jpg', 'https://s8.mkklcdnv8.com/mangakakalot/s2/ss923461/chapter_20/2.jpg']}, {'chapter_number': 21, 'chapter_name': 'Dark Blood Age Chapter 21', 'img_links': ['https://s8.mkklcdnv8.com/mangakakalot/s2/ss923461/chapter_21/1.jpg']}, {'chapter_number': 22, 'chapter_name': 'Dark Blood Age Chapter 22', 'img_links': ['https://s8.mkklcdnv8.com/mangakakalot/s2/ss923461/chapter_22/1.jpg']}
-]"""
-# Define the Recycleview class which is created in .kv file
 
 
 class RV(RecycleView):
@@ -82,35 +70,84 @@ class RV(RecycleView):
         print(title, self.manga_data.get(title))
         MangaNelo.download_manga(title, self.manga_data.get(title))
 
-        """
-		# print(self.properties().get("manga_data"), "parent: running from self.butt in RV")
-		for i in x.get('img_links'):
-			# print('button', x.get('img_links'), 'pressed')
-			print('button', i, 'pressed')
-		"""
 
+class PromptPopUp(MDCard):
+    def __init__(self, **kwargs):
+        super().__init__(kwargs)
+        self.orientation = "vertical"
+        self.padding = "8dp"
+        self.size_hint =  None, None
+        self.size =  "280dp", "180dp"
+        self.pos_hint = {"center_x": .5, "center_y": .5}
+
+        self.add_widget(MDRaisedButton(text="Read Manga Now?"))
 
 class MangaCoverTile(SmartTileWithLabel):
+    instances = []
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self.__class__.instances.append(self)
         self.size_hint_y = None
         self.height = "240dp"
+        self.font_style = "H6"
+        #self.bind(on_release = self.get_tile_data)
+
+        self.progressbar = MDProgressBar(value=0,pos_hint={"center_x":.5,"center_y": .5})
+        self.progressbar.opacity = 0
+        self.add_widget(self.progressbar)
+       
+
+    #TODO: Check if manga is already downloaded
+    def get_tile_data(self,*args):
+        pass
 
 
 class MangaCoverContainer(ScrollView):
     def __init__(self, master,**kwargs):
         super().__init__(**kwargs)
         self.master = master
-        self.manga_data = MDApp.get_running_app().manga_data
-        #self.rel = MDRelativeLayout()
-        self.grid = MDGridLayout(cols=5, adaptive_height=True, padding=("4dp", "4dp"), spacing="4dp")
-        #self.rel.add_widget(self.grid)
+        #self.screen_toolbar = self.master.screen_manager.current_screen.toolbar
+        self.manga_data = self.master.manga_data
+        self.downloader_links_methods = {"manganelo":MangaNelo.download_manga, "rawdevart":RawDevArt.download_manga,"kissmanga":KissManga.download_manga,"senmanga":SenManga.download_manga}
+        self.found_manga = [] # This list is ordered like on the screen, self.grid.children is not 
+        self.effect_cls = "ScrollEffect"
+        self.scroll_type = ["bars"]
+        self.bar_width = "10dp"
+        self.pos_hint = {"top":.9}
+        
+        # padding: [padding_left, padding_top, padding_right, padding_bottom]
+        self.grid = MDGridLayout(cols=5,adaptive_height=True,padding=("30dp", "50dp", "30dp", "100dp"), spacing="20dp") #padding=("30dp", "5dp")
+
+        for i in range(5):
+            self.manga_num_label = MDLabel(pos_hint = {"center_x":.5,"center_y":1})
+            if i == 3:
+                self.manga_num_label.text = f"{len(self.manga_data)} manga were found"
+            self.grid.add_widget(self.manga_num_label)    
 
         for title, links_tuple in self.manga_data.items():
-            print(title, "in for loop this val is cover", " v val: ", links_tuple)
-            self.btn = MangaCoverTile(source=links_tuple[1], text=title)
+            self.btn = MangaCoverTile(source=links_tuple[1], text=title, on_release=partial(self.make_request, title))
             self.grid.add_widget(self.btn)
+        
+        if self.manga_data == {}:
+            self.grid.add_widget(MDLabel(text="No Manga found", halign="center",pos_hint={"center_x":.5, "center_y":.5}))
         self.add_widget(self.grid)
+
+    @mainthread
+    # the code wont run unless *args is written; it claims '3 args where passed in the partial func above'
+    def make_request(self,title,tile):
+        self.master.selected_manga = title
+        toast(f"Downloading {title}")
+        tile.progressbar.opacity = 1
+        #print(self.master.downloader, "master downloader")
+                    
+        # Calls the appropriate downloader based on the selected site
+        #self.downloader_links_methods.get(self.master.downloader, lambda *args: "invalid downloader or download method")(self.master, tile,title, self.manga_data.get(title))
+        create_manga_dirs(self.master.downloader ,title)
+        print("downloader class in make reqeust meth", self.downloader_links_methods.get(self.master.downloader))
+        print("cwd: ", os.getcwd())
+        # Calls the appropriate downloader based on the selected site and starts a thread to allow prevent kivy event loop from locking
+        threading.Thread(target=partial(self.downloader_links_methods.get(self.master.downloader, lambda *args: "invalid downloader or download method"), self.master, tile, title, self.manga_data.get(title))).start()
+        #toast(f"Downloaded {title}")
 
 
 if __name__ == "__main__":
