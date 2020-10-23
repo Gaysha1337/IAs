@@ -70,20 +70,18 @@ class KissManga:
             os.chdir(current_chapter_dir)
             imgs_list = soup_.select("div.mb-3 img.img-fluid.not-lazy")
 
-            for img in imgs_list:          
-                response = requests.get(img.get('data-src'), stream=True)
-                filename = f"{title} {chapter} - {img.get('data-src').split('/')[-1]}"
-                
-                total_size_in_bytes, block_size= int(response.headers.get('content-length', 0)), 1024 #1 Kibibyte
-                #chapter_urls.append(["change: img link", filename])
-
-                #progress_bar = tqdm(desc=filename, total=total_size_in_bytes, unit='B', unit_scale=True, unit_divisor=1024)
-                
-                with open(filename, "wb") as f:
-                    for chunk in response.iter_content(block_size):
-                        f.write(chunk)
+            for img in imgs_list:
+                with requests.Session() as s:          
+                    response = s.get(img.get('data-src'), stream=True)
+                    filename = f"{title} {chapter} - {img.get('data-src').split('/')[-1]}"
+                    
+                    total_size_in_bytes, block_size= int(response.headers.get('content-length', 0)), 1024 #1 Kibibyte
+                    
+                    with open(filename, "wb") as f:
+                        for chunk in response.iter_content(block_size):
+                            f.write(chunk)
                 #progress_bar.close()
-            progress_bar.update(index + 1)
+            progress_bar.update(1)
             Clock.schedule_once(lambda args: KissManga.trigger_call(tile, index + 1), -1)
             #break
                 

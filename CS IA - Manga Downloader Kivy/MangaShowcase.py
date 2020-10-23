@@ -1,5 +1,7 @@
 import os, threading
 from threading import Thread
+
+from kivymd.uix.boxlayout import MDBoxLayout
 from Homepage import MangaCheckBox
 
 from kivy.core.window import Window
@@ -70,18 +72,6 @@ class RV(RecycleView):
         print(title, self.manga_data.get(title))
         MangaNelo.download_manga(title, self.manga_data.get(title))
 
-
-class PromptPopUp(MDCard):
-    def __init__(self, **kwargs):
-        super().__init__(kwargs)
-        self.orientation = "vertical"
-        self.padding = "8dp"
-        self.size_hint =  None, None
-        self.size =  "280dp", "180dp"
-        self.pos_hint = {"center_x": .5, "center_y": .5}
-
-        self.add_widget(MDRaisedButton(text="Read Manga Now?"))
-
 class MangaCoverTile(SmartTileWithLabel):
     instances = []
     def __init__(self, **kwargs):
@@ -101,7 +91,7 @@ class MangaCoverTile(SmartTileWithLabel):
     def get_tile_data(self,*args):
         pass
 
-
+# Downloaded Manga Display
 class MangaCoverContainer(ScrollView):
     def __init__(self, master,**kwargs):
         super().__init__(**kwargs)
@@ -117,6 +107,7 @@ class MangaCoverContainer(ScrollView):
         
         # padding: [padding_left, padding_top, padding_right, padding_bottom]
         self.grid = MDGridLayout(cols=5,adaptive_height=True,padding=("30dp", "50dp", "30dp", "100dp"), spacing="20dp") #padding=("30dp", "5dp")
+        #self.grid = MDBoxLayout(adaptive_height=True,padding=("30dp", "50dp", "30dp", "100dp"), spacing="20dp") #padding=("30dp", "5dp")
 
         for i in range(5):
             self.manga_num_label = MDLabel(pos_hint = {"center_x":.5,"center_y":1})
@@ -127,6 +118,7 @@ class MangaCoverContainer(ScrollView):
         for title, links_tuple in self.manga_data.items():
             self.btn = MangaCoverTile(source=links_tuple[1], text=title, on_release=partial(self.make_request, title))
             self.grid.add_widget(self.btn)
+            print(self.btn.size)
         
         if self.manga_data == {}:
             self.grid.add_widget(MDLabel(text="No Manga found", halign="center",pos_hint={"center_x":.5, "center_y":.5}))
@@ -134,20 +126,18 @@ class MangaCoverContainer(ScrollView):
 
     @mainthread
     # the code wont run unless *args is written; it claims '3 args where passed in the partial func above'
+    # Note: tile acts as an instance of the button
     def make_request(self,title,tile):
         self.master.selected_manga = title
         toast(f"Downloading {title}")
-        tile.progressbar.opacity = 1
-        #print(self.master.downloader, "master downloader")
-                    
+        tile.progressbar.opacity = 1                    
         # Calls the appropriate downloader based on the selected site
         #self.downloader_links_methods.get(self.master.downloader, lambda *args: "invalid downloader or download method")(self.master, tile,title, self.manga_data.get(title))
         create_manga_dirs(self.master.downloader ,title)
-        print("downloader class in make reqeust meth", self.downloader_links_methods.get(self.master.downloader))
+        
         print("cwd: ", os.getcwd())
         # Calls the appropriate downloader based on the selected site and starts a thread to allow prevent kivy event loop from locking
         threading.Thread(target=partial(self.downloader_links_methods.get(self.master.downloader, lambda *args: "invalid downloader or download method"), self.master, tile, title, self.manga_data.get(title))).start()
-        #toast(f"Downloaded {title}")
 
 
 if __name__ == "__main__":

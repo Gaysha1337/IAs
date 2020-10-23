@@ -1,6 +1,10 @@
+from cfscrape import user_agents
 import requests, os, re
+from collections import OrderedDict
+from tqdm import tqdm
 from bs4 import BeautifulSoup
 from requests import exceptions
+from kivy.clock import Clock
 
 # delete this line when publishing
 if __name__ != "__main__":
@@ -50,12 +54,15 @@ class MangaNelo():
         download_cover_img(cover_img_link, cover_img_link.split("/")[-1])
 
         headers = {
-            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.75 Safari/537.36"
+            "referer": "https://chap.manganelo.com/",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.75 Safari/537.36",
         }
 
         soup = BeautifulSoup(requests.get(manga_download_link).content, features="lxml")
         #print("manga download link: ",manga_download_link, "cover img l", cover_img_link)
         chapter_links = [{"imgs-link":link.get("href"), "chapter":link.text.strip()} for link in soup.select("a.chapter-name.text-nowrap")][::-1]
+        progress_bar = tqdm(chapter_links, total=len(chapter_links))
+        tile.progressbar.max = len(chapter_links)
         for index, link_dict in enumerate(chapter_links):
             chapter, link = link_dict.get("chapter"), link_dict.get("imgs-link")
             chapter = re.sub(r'[\\/*?:"<>|]',"",chapter) # Sanitize chapter name for dir/file creation
@@ -69,22 +76,54 @@ class MangaNelo():
             os.chdir(current_chapter_dir)
 
             for img in soup_.select("div.container-chapter-reader img"):
-                response = requests.get(img.get("src"), headers=headers)
-                filename = img.get("title") + img.get("src").split("/")[-1]
-                filename = re.sub(r'[\\/*?:"<>|]',"",filename) # Sanitize filename for creation
+                # The request session is needed to bypass Cloudfare by setting correct cookies
+                with requests.Session() as s:
+                    response = s.get(img.get("src"), headers=headers)
+                    filename = img.get("title") + img.get("src").split("/")[-1]
+                    filename = re.sub(r'[\\/*?:"<>|]',"",filename) # Sanitize filename for creation
 
-                with open(filename, "wb") as f:
-                    f.write(response.content)
-            break
+                    with open(filename, "wb") as f:
+                        f.write(response.content)
+            
+            progress_bar.update(1)
+            Clock.schedule_once(lambda args: MangaNelo.trigger_call(tile, 1), -1)
 
+        progress_bar.close()
+
+    @staticmethod
+    def trigger_call(tile,val):
+        tile.progressbar.value+= val
 
 
 if __name__ == "__main__":    
     #x = MangaNelo("Dark age")
     #print(x.manga_choices)
 
+    """
     url = "https://chap.manganelo.com/manga-hl88905"
     r = requests.get(url)
     soup = BeautifulSoup(r.content, features="lxml")
     chapter_links = [{"imgs-link":link.get("href"), "chapter":link.text.strip()} for link in soup.select("a.chapter-name.text-nowrap")][::-1]
-    print(chapter_links)
+    #print(chapter_links)
+    """
+    headers = {
+        "referer": "https://chap.manganelo.com/",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.75 Safari/537.36",
+    }
+    chapter_17 = "https://chap.manganelo.com/manga-hl88905/chapter-17"
+    r = requests.get(chapter_17)
+    soup_ = BeautifulSoup(r.content, features="lxml")
+    imgs = soup_.select("div.container-chapter-reader img")
+
+    
+    for img in imgs:
+        with requests.Session() as s:
+            response = s.get(img.get("src"), headers=headers)
+            filename = img.get("title") + img.get("src").split("/")[-1]
+            filename = re.sub(r'[\\/*?:"<>|]',"",filename) # Sanitize filename for creation
+            print(filename)
+
+            with open(filename, "wb") as f:
+                f.write(response.content)
+        break
+    

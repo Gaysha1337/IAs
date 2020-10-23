@@ -5,7 +5,6 @@ from pathlib import Path
 from kivy.clock import Clock
 from kivy.core.window import Window
 from kivy.uix.scrollview import ScrollView
-from kivymd.uix.filemanager import MDFileManager
 from kivymd.app import MDApp
 from kivymd.uix.imagelist import SmartTileWithLabel
 from kivymd.uix.label import MDLabel
@@ -16,11 +15,10 @@ from kivymd.uix.button import MDRaisedButton, MDIconButton, MDRectangleFlatButto
 
 from kivymd.uix.snackbar import Snackbar
 from kivymd.toast import toast
-#from kivymd.toast.kivytoast import toast
-from kivymd.toast.kivytoast.kivytoast import Toast
 
 
 from kivymd.uix.gridlayout import GridLayout, MDGridLayout
+from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.floatlayout import FloatLayout
 from kivy.uix.relativelayout import RelativeLayout
 
@@ -62,6 +60,7 @@ class RightContentCls(RightContent):
         self.master = MDApp.get_running_app()
         #self.input_bar = MDApp.get_running_app().manga_search_page.input_bar
         self.check_btn = MangaCheckBox()
+        self.check_btn.allow_no_selection = False
         self.checkbox_site = checkbox_site
         self.check_btn.checkbox_site = checkbox_site
         
@@ -232,6 +231,7 @@ class MangaCoverTile(SmartTileWithLabel):
         self.height = "240dp"
         self.font_style = "H6"
 
+# Reading Manga Display
 class DownloadedMangaDisplay(ScrollView):
     # master is used to reference the root app
     # language is used to display the download manga from that language (english or Japanese)
@@ -260,20 +260,22 @@ class DownloadedMangaDisplay(ScrollView):
 
         for i in self.manga_tile_data:
             title, manga_path = i[0].split("\\")[-1], i[0]
-            self.btn = MangaCoverTile(source=i[1], text=title, on_release=partial(self.go_to_reader, title, manga_path))
+            self.btn = MangaCoverTile(source=i[1], text=title, on_release=partial(self.go_to_reader_chapter_selection, title, manga_path))
             self.grid.add_widget(self.btn)
         self.add_widget(self.grid)
 
-    def go_to_reader(self,title, manga_path,inst):
+    def go_to_reader_chapter_selection(self,title, manga_path,inst):
         #print("inst: ", inst, "title: ", title, "manga path", manga_path)
         # This bit acts as refresh for the manga cover display
-        if not self.master.screen_manager.has_screen("Manga Reader"):
-            self.master.create_manga_reader(manga_path=manga_path)
+        screen_name = "Manga Reader Chapter Selection"
+        #if not self.master.screen_manager.has_screen("Manga Reader"):
+        if not self.master.screen_manager.has_screen(screen_name):
+            self.master.create_manga_reader_chapter_selection(title, manga_path)
 
         else:
-            self.master.screen_manager.clear_widgets(screens=[self.master.screen_manager.get_screen("Manga Reader")])
-            self.master.create_manga_reader(manga_path=manga_path)
-        self.master.screen_manager.current = "Manga Reader"
+            self.master.screen_manager.clear_widgets(screens=[self.master.screen_manager.get_screen(screen_name)])
+            self.master.create_manga_reader_chapter_selection(title, manga_path)
+        self.master.screen_manager.current = screen_name
 
 
 # RelativeLayout

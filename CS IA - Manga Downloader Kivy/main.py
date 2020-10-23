@@ -22,7 +22,7 @@ from Downloaders.manga_nelo_OOP import MangaNelo
 from kivy.uix.screenmanager import ScreenManager, Screen
 from Homepage import MangaSearchPage, LandingPage, MangaReadingPage, DownloadedMangaDisplay
 from MangaShowcase import RV, MangaCoverContainer
-from MangaReader import MangaReaderCarousel # This will be a carousel for swiping pages
+from MangaReader import MangaReaderChapterSelection, MangaReaderCarousel # This will be a carousel for swiping pages
 
 # Utils
 from settings import AppSettings
@@ -96,6 +96,7 @@ class MangaDownloader(MDApp):
     manga_root_dir = StringProperty(None)
     # The folders which will contain manga in english or Japanese
     english_manga_dir, japanese_manga_dir = StringProperty(None), StringProperty(None)
+
     # Reference for the download folder for the selected manga to be downloaded
     current_manga_dir = StringProperty(None)
 
@@ -111,9 +112,6 @@ class MangaDownloader(MDApp):
         self.title = "Manga Downloader"
 
         # Manga Root Directory
-        self._home_dir = os.path.expanduser("~/Desktop") if platform == "win" else None
-        #self.manga_root_dir = os.path.join(self.user_data_dir, "Manga")
-
         create_root_dir(self.manga_root_dir)
         create_language_dirs([self.english_manga_dir,self.japanese_manga_dir])
 
@@ -126,8 +124,12 @@ class MangaDownloader(MDApp):
         self.theme_cls.primary_palette = self.config.get("Settings", "color_scheme")
         self.download_path = self.config.get("Settings", "download_path") # The path where all manga will be downloaded to (default is manga root)
         self.downloader = self.config.get("Settings", "default_downloader") # The default manga downloading site
-        self.manga_reading_direction = self.config.get("Settings", "manga_reading_direction")
-        self.manga_swiping_direction = self.config.get("Settings", "manga_swiping_direction")
+        #self.manga_reading_direction = self.config.get("Settings", "manga_reading_direction")
+        #self.manga_swiping_direction = self.config.get("Settings", "manga_swiping_direction")
+
+        # getint is used to convert the string val into int and into a boolean
+        self.manga_reading_direction = bool(self.config.getint("Settings", "manga_reading_direction"))
+        self.manga_swiping_direction = bool(self.config.getint("Settings", "manga_swiping_direction"))
         
         # Screen related
         self.screen_manager = ScreenManager()
@@ -164,9 +166,16 @@ class MangaDownloader(MDApp):
         screen.add_widget(self.download_manga_display)
         self.screen_manager.add_widget(screen)
 
+    # Creates a display with buttons of the downloaded chapters 
+    def create_manga_reader_chapter_selection(self,title, manga_path):
+        self.chapter_selector = MangaReaderChapterSelection(self, title, manga_path)
+        screen = MangaScreen(name="Manga Reader Chapter Selection")
+        screen.add_widget(self.chapter_selector)
+        self.screen_manager.add_widget(screen)
+
     # Creates the swiping carousel for reading a downloaded manga
-    def create_manga_reader(self, manga_path):
-        self.manga_reader = MangaReaderCarousel(self, manga_path)
+    def create_manga_reader(self,manga_title,chapter_name,chapter_path):
+        self.manga_reader = MangaReaderCarousel(self, manga_title,chapter_name, chapter_path)
         screen = MangaScreen(name="Manga Reader")
         screen.add_widget(self.manga_reader)
         self.screen_manager.add_widget(screen)
@@ -178,11 +187,11 @@ class MangaDownloader(MDApp):
         #user_downloads_dir = os.path.join(self.user_data_dir, "Manga")
 
         config.setdefaults('Settings', {
-            'theme_mode':'Light',
-            'color_scheme':'Red',
+            'theme_mode':'Dark',
+            'color_scheme':'Pink',
             'default_downloader': "rawdevart",
             'download_path':self.manga_root_dir,
-            'manga_reading_direction': True, # Defaults to reading horizontally (swiping)
+            'manga_reading_direction': False, # Defaults to reading horizontally (swiping)
             'manga_swiping_direction':False, # Defaults to English style: left to right; True is Japanese (right to left)
             'optionsexample': 'option2',
             }
@@ -202,8 +211,10 @@ class MangaDownloader(MDApp):
         self.download_path = self.config.get("Settings", "download_path") 
         self.downloader = self.config.get("Settings", "default_downloader")
 
-        self.manga_reading_direction = self.config.get("Settings", "manga_reading_direction")
-        self.manga_swiping_direction = self.config.get("Settings", "manga_swiping_direction")
+        self.manga_reading_direction = bool(self.config.getint("Settings", "manga_reading_direction"))
+        self.manga_swiping_direction = bool(self.config.getint("Settings", "manga_swiping_direction"))
+
+        print("reading dir:",self.manga_reading_direction, "self.swiping dir: ,", self.manga_swiping_direction)
         
 
         

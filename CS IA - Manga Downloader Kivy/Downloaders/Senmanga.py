@@ -82,30 +82,15 @@ class SenManga:
             os.chdir(current_chapter_dir)
             imgs_list = [link.replace("raw.senmanga.com", "delivery.senmanga.com/viewer") + "/" + str(img_num) for img_num in range(1,total_imgs_num + 1) ]
 
-            for index_, img in enumerate(imgs_list):
-                print(img)
-                r_ = requests.get(img, headers=headers)
-                filename = title + chapter + img.split("/")[-1] + ".jpg"
-                with open(filename, "wb") as f:
-                    f.write(r_.content)
-                """          
-                response = requests.get(img.get('data-src'), stream=True)
-                filename = f"{title} {chapter} - {img.get('data-src').split('/')[-1]}"
+            for img in imgs_list:
+                with requests.Session() as s:
+                    response = s.get(img, headers=headers)
+                    filename = title + chapter + img.split("/")[-1] + ".jpg"
+                    with open(filename, "wb") as f:
+                        f.write(response.content)
                 
-                total_size_in_bytes, block_size= int(response.headers.get('content-length', 0)), 1024 #1 Kibibyte
-                #chapter_urls.append(["change: img link", filename])
-
-                #progress_bar = tqdm(desc=filename, total=total_size_in_bytes, unit='B', unit_scale=True, unit_divisor=1024)
-                
-                with open(filename, "wb") as f:
-                    for chunk in response.iter_content(block_size):
-                        pass
-                        
-                        #f.write(chunk)
-                #progress_bar.close()
-                """
             # TODO: Is the right way to update the progress bar
-            progress_bar.update(index + 1)
+            progress_bar.update(1)
             Clock.schedule_once(lambda args: SenManga.trigger_call(tile, index + 1), -1)
             #break
         progress_bar.close()    
