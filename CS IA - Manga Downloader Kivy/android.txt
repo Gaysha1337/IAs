@@ -1,0 +1,3 @@
+title=Manga Downloader
+author=Dimitriy Kruglikov
+orientation=portrait

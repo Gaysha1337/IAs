@@ -11,7 +11,7 @@ from kivymd.uix.label import MDLabel
 from kivymd.uix.relativelayout import MDRelativeLayout
 
 from kivymd.uix.textfield import MDTextField
-from kivymd.uix.button import MDRaisedButton, MDIconButton, MDRectangleFlatButton, MDRectangleFlatIconButton
+from kivymd.uix.button import MDFillRoundFlatIconButton, MDRaisedButton, MDIconButton, MDRectangleFlatButton, MDRectangleFlatIconButton
 
 from kivymd.uix.snackbar import Snackbar
 from kivymd.toast import toast
@@ -30,12 +30,14 @@ from kivy.uix.screenmanager import ScreenManager, Screen
 from kivymd.uix.menu import MDDropdownMenu, RightContent
 from kivymd.uix.selectioncontrol import MDCheckbox
 
+from utils import convert_from_japanese_text
+
 from Downloaders.manga_nelo_OOP import MangaNelo
 from Downloaders.raw_dev_art import RawDevArt
 from Downloaders.kissmanga import KissManga
 from Downloaders.Senmanga import SenManga
 
-from pykakasi import kakasi, wakati
+import pykakasi # Used for converting Japanese Kana to Romanji
 
 # Kivy strings
 from kivy_strings import *
@@ -103,23 +105,6 @@ class MangaSearchPage(RelativeLayout):
         self.menu.bind(on_release=self.menu_callback)
         self.add_widget(self.btn)
 
-    def show_japanese_text(self):
-        """
-        kakasi_converter = kakasi()
-        kakasi_converter.setMode("H","a") # Hiragana to ascii, default: no conversion
-        kakasi_converter.setMode("K","a") # Katakana to ascii, default: no conversion
-        kakasi_converter.setMode("J","a") # Japanese to ascii, default: no conversion
-        kakasi_converter.setMode("s", True) # add space, default: no separator
-        #kakasi_converter.setMode("C", True) # capitalize, default: no capitalize
-        kakasi_converter.setMode("r","Hepburn") # default: use Hepburn Roman table
-        text = self.ids.SearchFieldID.text
-        text = text.encode("utf-8")
-        conv = kakasi_converter.getConverter()
-        result = conv.do(text)
-        self.ids.SearchFieldID.text = result
-        """
-        pass
-
     # Had to install dev version for callback to work
     def menu_callback(self, instance_menu, instance_menu_item):
         for i in instance_menu_item.children:
@@ -141,25 +126,29 @@ class MangaSearchPage(RelativeLayout):
         # Manga Nelo only accepts english input:
         if self.master.downloader == "manganelo":
             os.chdir(self.master.english_manga_dir)
-            self.manganelo = MangaNelo(self.input_bar.text)
+            jp_to_en_text = convert_from_japanese_text(self.input_bar.text)
+            self.manganelo = MangaNelo(jp_to_en_text)
             self.absract_get_query_data(self.manganelo)
 
         # Raw Dev Art accepts Japanese and English input
         elif self.master.downloader == "rawdevart":
             os.chdir(self.master.japanese_manga_dir)
-            self.raw_dev_art = RawDevArt(self.input_bar.text)
+            jp_to_en_text = convert_from_japanese_text(self.input_bar.text)
+            self.raw_dev_art = RawDevArt(jp_to_en_text)
             self.absract_get_query_data(self.raw_dev_art)
 
         # KissManga accepts Japanese and English input
         elif self.master.downloader == "kissmanga":
             os.chdir(self.master.english_manga_dir)
-            self.kiss_manga = KissManga(self.input_bar.text)
+            jp_to_en_text = convert_from_japanese_text(self.input_bar.text)
+            self.kiss_manga = KissManga(jp_to_en_text)
             self.absract_get_query_data(self.kiss_manga)
             
         # Sen Manga accepts Japanese and English input
         elif self.master.downloader == "senmanga":
             os.chdir(self.master.japanese_manga_dir)
-            self.sen_manga = SenManga(self.input_bar.text)
+            jp_to_en_text = convert_from_japanese_text(self.input_bar.text)
+            self.sen_manga = SenManga(jp_to_en_text)
             self.absract_get_query_data(self.sen_manga)
         else:
             print("Error")
@@ -193,13 +182,14 @@ class MangaReadingPage(MDRelativeLayout):
         super().__init__(**kwargs)
         self.master = master
 
-        self.btn_text = ["Japanese (raw) Manga", "       English Manga          "]
+        self.btn_text = ["Japanese (raw) Manga", "       English Manga          ", "      File Explorer      "]
 
-        self.japanese_manga_btn = MDRectangleFlatButton(text=self.btn_text[0], pos_hint={"center_x":.5, "center_y":.6}, on_release=self.go_to_read_downloaded_manga)
+        self.japanese_manga_btn = MDRectangleFlatButton(text=self.btn_text[0],pos_hint={"center_x":.5, "center_y":.6}, on_release=self.go_to_read_downloaded_manga)
         self.english_manga_btn = MDRectangleFlatButton(text=self.btn_text[1],pos_hint={"center_x":.5, "center_y":.4}, on_release=self.go_to_read_downloaded_manga)
-
+        self.file_explorer_btn = MDRectangleFlatIconButton(icon="folder",text=self.btn_text[2], pos_hint={"center_x":.5, "center_y":.2}, on_release = lambda x: os.startfile(self.master.manga_root_dir))
         self.add_widget(self.japanese_manga_btn)
         self.add_widget(self.english_manga_btn)
+        self.add_widget(self.file_explorer_btn)
 
     def go_to_read_downloaded_manga(self, inst):
         screen_name = "Downloaded Manga Showcase"

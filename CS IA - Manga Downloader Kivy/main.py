@@ -2,21 +2,12 @@
 import os, json, plyer, sys, pathlib
 
 from kivymd.app import MDApp
-#from kivy.app import user_data_dir
-from kivy.lang import Builder
 from kivy.properties import StringProperty, DictProperty
 
 # Widgets
-from kivy.uix.button import Button
 from kivymd.uix.button import MDIconButton, MDRectangleFlatIconButton
 from kivymd.uix.snackbar import Snackbar
-from kivymd.toast import toast
-from kivymd.uix.progressbar import MDProgressBar
 from kivymd.uix.toolbar import MDToolbar
-
-
-# Downloaders
-from Downloaders.manga_nelo_OOP import MangaNelo
 
 # Screens and Screen-related
 from kivy.uix.screenmanager import ScreenManager, Screen
@@ -25,12 +16,9 @@ from MangaShowcase import RV, MangaCoverContainer
 from MangaReader import MangaReaderChapterSelection, MangaReaderCarousel # This will be a carousel for swiping pages
 
 # Utils
+from kivy.lang import Builder
 from settings import AppSettings
 from kivy.config import Config
-from functools import partial
-from kivy.core.window import Window
-from kivy.clock import Clock
-from kivy.utils import platform  # Used to tell if platform is android
 
 from utils import create_language_dirs, create_root_dir
 
@@ -44,7 +32,7 @@ _USERAGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTM
 
 
 # android can only use droid, roboto, and dejavu fonts
-Builder.load_string(manga_input_kv_str) # The input bar needs to be wirrten in KV else the hint text wont showup
+Builder.load_string(manga_input_kv_str) # The input bar needs to be written in KV else the hint text wont showup
 #Builder.load_string(manga_display_kv_str)
 Config.set("network","useragent",_USERAGENT)
 
@@ -91,12 +79,10 @@ class MangaDownloader(MDApp):
     # This property will hold a reference to the user's selected manga when they click on a tile
     # TODO: Can it be used only for downloading manga or reading it?
     selected_manga = StringProperty(None)
-    
     # The folder where all manga will be downloaded to, AKA: the manga root
     manga_root_dir = StringProperty(None)
     # The folders which will contain manga in english or Japanese
     english_manga_dir, japanese_manga_dir = StringProperty(None), StringProperty(None)
-
     # Reference for the download folder for the selected manga to be downloaded
     current_manga_dir = StringProperty(None)
 
@@ -107,6 +93,7 @@ class MangaDownloader(MDApp):
         self.manga_root_dir = os.path.join(self.user_data_dir, "Manga")
         self.english_manga_dir = os.path.join(self.manga_root_dir, "English Manga")
         self.japanese_manga_dir = os.path.join(self.manga_root_dir, "Raw Japanese Manga")
+        
     
     def build(self):
         self.title = "Manga Downloader"
@@ -124,9 +111,6 @@ class MangaDownloader(MDApp):
         self.theme_cls.primary_palette = self.config.get("Settings", "color_scheme")
         self.download_path = self.config.get("Settings", "download_path") # The path where all manga will be downloaded to (default is manga root)
         self.downloader = self.config.get("Settings", "default_downloader") # The default manga downloading site
-        #self.manga_reading_direction = self.config.get("Settings", "manga_reading_direction")
-        #self.manga_swiping_direction = self.config.get("Settings", "manga_swiping_direction")
-
         # getint is used to convert the string val into int and into a boolean
         self.manga_reading_direction = bool(self.config.getint("Settings", "manga_reading_direction"))
         self.manga_swiping_direction = bool(self.config.getint("Settings", "manga_swiping_direction"))
@@ -214,7 +198,7 @@ class MangaDownloader(MDApp):
         self.manga_reading_direction = bool(self.config.getint("Settings", "manga_reading_direction"))
         self.manga_swiping_direction = bool(self.config.getint("Settings", "manga_swiping_direction"))
 
-        print("reading dir:",self.manga_reading_direction, "self.swiping dir: ,", self.manga_swiping_direction)
+        #print("reading dir:",self.manga_reading_direction, "self.swiping dir: ,", self.manga_swiping_direction)
         
 
         

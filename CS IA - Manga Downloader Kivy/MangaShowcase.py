@@ -4,8 +4,6 @@ from threading import Thread
 from kivymd.uix.boxlayout import MDBoxLayout
 from Homepage import MangaCheckBox
 
-from kivy.core.window import Window
-from kivy.uix.label import Label
 from kivymd.app import MDApp
 from kivy.clock import Clock, mainthread
 from kivy.properties import ListProperty, DictProperty, NumericProperty
@@ -32,7 +30,7 @@ from kivymd.uix.progressbar import MDProgressBar
 from kivymd.uix.card import MDCard, MDSeparator
 
 # Downloaders
-from Downloaders.manga_nelo_OOP import MangaNelo
+from Downloaders.MangaNelo import MangaNelo
 from Downloaders.raw_dev_art import RawDevArt
 from Downloaders.kissmanga import KissManga
 from Downloaders.Senmanga import SenManga
@@ -42,8 +40,7 @@ from kivy.uix.recycleview import RecycleView
 from kivy.uix.scrollview import ScrollView
 
 from kivy.lang import Builder
-from kivy.graphics import Rectangle, Color
-from utils import download_manga, create_manga_dirs
+from utils import create_manga_dirs
 
 from kivy_strings import manga_display_kv_str
 
@@ -105,24 +102,24 @@ class MangaCoverContainer(ScrollView):
         self.bar_width = "10dp"
         self.pos_hint = {"top":.9}
         
+        self.outer_gird = MDGridLayout(rows=2,adaptive_height=True, padding=("0dp", "20dp", "0dp", "0dp"))
+        self.outer_gird.add_widget(MDLabel(text=f"{len(self.manga_data)} manga were found", halign="center",pos_hint = {"center_x":.5,"top":.7}))
+        
         # padding: [padding_left, padding_top, padding_right, padding_bottom]
         self.grid = MDGridLayout(cols=5,adaptive_height=True,padding=("30dp", "50dp", "30dp", "100dp"), spacing="20dp") #padding=("30dp", "5dp")
-        #self.grid = MDBoxLayout(adaptive_height=True,padding=("30dp", "50dp", "30dp", "100dp"), spacing="20dp") #padding=("30dp", "5dp")
-
-        for i in range(5):
-            self.manga_num_label = MDLabel(pos_hint = {"center_x":.5,"center_y":1})
-            if i == 3:
-                self.manga_num_label.text = f"{len(self.manga_data)} manga were found"
-            self.grid.add_widget(self.manga_num_label)    
-
+        self.grid.cols = 5 if platform == "win" else 1 # set the num of cols depeneding on device; on android: 1 is easier (UI purpose)
+        
         for title, links_tuple in self.manga_data.items():
             self.btn = MangaCoverTile(source=links_tuple[1], text=title, on_release=partial(self.make_request, title))
             self.grid.add_widget(self.btn)
-            print(self.btn.size)
+            
         
         if self.manga_data == {}:
             self.grid.add_widget(MDLabel(text="No Manga found", halign="center",pos_hint={"center_x":.5, "center_y":.5}))
-        self.add_widget(self.grid)
+            #self.outer_gird.add_widget(MDLabel(text="No Manga found", halign="center",pos_hint={"center_x":.5, "center_y":.5}))
+        self.outer_gird.add_widget(self.grid)
+        #self.add_widget(self.grid)
+        self.add_widget(self.outer_gird)
 
     @mainthread
     # the code wont run unless *args is written; it claims '3 args where passed in the partial func above'

@@ -74,19 +74,7 @@ class AppSettings:
     
     json_settings = json.dumps([
             {'type': 'title',
-            'title': 'General Settings'},
-
-            {'type': 'bool',
-            'title': 'A boolean setting',
-            'desc': 'Boolean description text',
-            'section': 'Settings',
-            'key': 'boolexample'},
-
-            {'type': 'numeric',
-            'title': 'A numeric setting',
-            'desc': 'Numeric description text',
-            'section': 'Settings',
-            'key': 'numericexample'},
+            'title': 'Color Scheme and Theme Settings'},
 
             {'type': 'scrolloptions',
             'title': 'Theme',
@@ -97,29 +85,41 @@ class AppSettings:
 
             {'type': 'scrolloptions',
             'title': 'Color scheme',
-            'desc': 'This settings affects the color of:Text, borders... but not the theme(light or dark)',
+            'desc': 'This settings affects the color of: Text, borders... but not the theme(light or dark)',
             'section': 'Settings',
             'key': 'color_scheme',
             'options': ['Red', 'Pink', 'Purple', 'DeepPurple', 'Indigo', 'Blue', 'LightBlue', 'Cyan', 'Teal', 'Green', 'LightGreen', 'Lime', 'Yellow', 'Amber', 'Orange', 'DeepOrange', 'Brown', 'Gray', 'BlueGray']},
+
+            {'type': 'title',
+            'title': 'Download Settings'},
 
             {'type': 'scrolloptions',
             'title': 'Default Manga Site',
             'desc': 'The default site that will be used to download manga',
             'section': 'Settings',
-            'key': 'default_manga_site',
-            'options': ["manganelo", "rawart", "kissmanga", "idk"]},
+            'key': 'default_downloader',
+            'options': ["manganelo", "rawdevart", "kissmanga", "senmanga"]},
 
             {'type': 'path',
             'title': 'Download Folder Path',
-            'desc': "All downloaded manga will be found in this folder called 'manga_downloader_root' ",
+            'desc': "All downloaded manga will be found in a folder called 'Manga' ",
             'section': 'Settings',
-            'key': 'DownloadPath'},
-            
-            {'type': 'string',
-            'title': 'A string setting',
-            'desc': 'String description text',
+            'key': 'download_path'},
+
+            {'type': 'title',
+            'title': 'Manga Reader Settings'},
+
+            {'type': 'bool',
+            'title': 'Manga Reading Direction',
+            'desc': 'Turn on to scroll vertically while reading. Turn off to swipe horizontally for reading',
             'section': 'Settings',
-            'key': 'stringexample'}])
+            'key': 'manga_reading_direction'},
+
+            {'type': 'bool',
+            'title': 'Manga Reading Swipe Direction',
+            'desc': 'Turn on to use the Japanese way of reading manga: Right to Left, while swiping; default is: Left to Right.',
+            'section': 'Settings',
+            'key': 'manga_swiping_direction'},])
 
 
     class SettingScrollOptions(SettingOptions):
@@ -191,23 +191,24 @@ class SettingsApp(MDApp):
         user_downloads_dir=plyer.storagepath.get_downloads_dir()
 
         config.setdefaults('Settings', {
+            'useJapaneseKeyboard': True,
             'boolexample': True,
             'numericexample': 10,
             'optionsexample': 'option2',
             'stringexample': 'some_string',
             'DownloadPath': user_downloads_dir,
-            'default_manga_site':'manganelo',
+            'default_downloader':'manganelo',
             'color_scheme':'Pink',
             'theme_mode':'Dark'})
 
     def build_settings(self, settings):
         # You can add multiple panels
-        settings.add_json_panel(
-            'Manga Downloader Settings', self.config, data = settings_json)
+        settings.add_json_panel('Manga Downloader Settings', self.config, data = settings_json)
 
     # This method can handle any changes made to the settings
     def on_config_change(self, config, section, key, value):
         print(config, section, key, value, "fuwhrif")
 
 if __name__ == "__main__":
-    SettingsApp().run()
+    #SettingsApp().run()
+    pass

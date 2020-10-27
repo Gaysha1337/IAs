@@ -91,7 +91,7 @@ class SenManga:
                 
             # TODO: Is the right way to update the progress bar
             progress_bar.update(1)
-            Clock.schedule_once(lambda args: SenManga.trigger_call(tile, index + 1), -1)
+            Clock.schedule_once(lambda args: SenManga.trigger_call(tile, 1), -1)
             #break
         progress_bar.close()    
         print("remove break near line 106 for full testing")

@@ -1,0 +1,38 @@
+1. Fixing useragent:
+    """
+    go to C:\Users\dimit\AppData\Local\Programs\Python\Python36\lib\site-packages\kivy\network\urlrequest.py and change: 
+    "if (Config.has_section('network')and 'useragent' in Config.items('network'))" to 
+    "if Config.has_option('network', 'useragent'):"
+    """
+
+    go to C:\Users\dimit\AppData\Local\Programs\Python\Python36\lib\site-packages\kivy\loader.py and change:
+    "if (Config.has_section('network')and 'useragent' in Config.items('network'))" to 
+    "if Config.has_option('network', 'useragent'):"
+
+
+2. Getting Japanese to work
+    Install dev version of kivy:
+    https://kivy.org/doc/stable/installation/installation-windows.html#dev-install-win
+    Current version: Version: 2.0.0rc3
+
+    TODO: See if it works on android
+
+3. In style.kv, underneath <MenuSidebar> remove or comment out: orientation:vertical (since it is a gridlayout)
+
+4. In kivymd/uix/filemanager.py , in the section:
+```
+RecycleGridLayout:
+    padding: dp(10)
+    cols: 3 if root.preview else 1
+    default_size: None, dp(48)
+    default_size_hint: 1, None
+    size_hint_y: None
+    height: self.minimum_height
+    #orientation: "vertical"
+```
+Make sure ``orientation: "vertical"`` is commented out
+
+
+5. Kana conversion library:
+    - in cmd type "set PYTHONUTF8=1"
+    - then: pip install romkan

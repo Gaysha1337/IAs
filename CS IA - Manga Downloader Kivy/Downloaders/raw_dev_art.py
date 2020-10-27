@@ -1,11 +1,9 @@
 from functools import partial
-from os import stat
 
-from kivy.clock import Clock, mainthread
+from kivy.clock import Clock
 import requests, os, re
 from bs4 import BeautifulSoup
 from tqdm import tqdm
-from kivymd.toast import toast
 from kivymd.app import MDApp
 
 if __name__ != "__main__":
