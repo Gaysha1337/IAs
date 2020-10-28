@@ -1,0 +1,7 @@
+1. Add permissions (you can CTRL + F "internet", by default it is commented out):
+    TODO: Add storage permissions (and others if there are)
+
+2. Add requirements (see requirements.txt)
+
+
+3. When deploying add the verbose flag (-v), full command: buildozer -v android debug deploy run
