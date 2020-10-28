@@ -1,6 +1,4 @@
-from cfscrape import user_agents
 import requests, os, re
-from collections import OrderedDict
 from tqdm import tqdm
 from bs4 import BeautifulSoup
 from requests import exceptions

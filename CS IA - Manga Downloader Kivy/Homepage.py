@@ -32,7 +32,7 @@ from kivymd.uix.selectioncontrol import MDCheckbox
 
 from utils import convert_from_japanese_text
 
-from Downloaders.manga_nelo_OOP import MangaNelo
+from Downloaders.MangaNelo import MangaNelo
 from Downloaders.raw_dev_art import RawDevArt
 from Downloaders.kissmanga import KissManga
 from Downloaders.Senmanga import SenManga

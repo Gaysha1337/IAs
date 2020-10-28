@@ -6,7 +6,8 @@ manga_input_kv_str = '''
         id: SearchFieldID
         mode: "rectangle"
         hint_text: "Type in a manga"
-        font_name: "meiryo.ttc"
+        #font_name: "meiryo.ttc"
+        font_nane: "NotoSansCJKjp-Regular.otf"
         size_hint:(0.5,0.1)
         pos_hint:{'center_x': 0.5, 'center_y': 0.5}
         on_text_validate: root.get_manga_query_data()

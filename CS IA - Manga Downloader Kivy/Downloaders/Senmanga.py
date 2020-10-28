@@ -3,8 +3,6 @@ from bs4 import BeautifulSoup
 from tqdm import tqdm
 from functools import partial
 from kivy.clock import Clock, mainthread
-
-from kivymd.toast import toast
 from kivymd.app import MDApp
 
 if __name__ != "__main__":

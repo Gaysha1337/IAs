@@ -1,6 +1,4 @@
-import kivy
-import json
-import plyer
+import json, plyer
 from kivymd.app import MDApp
 
 from kivy.uix.settings import Settings
@@ -20,11 +18,6 @@ from kivy.lang import Builder
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.settings import SettingsWithSidebar
 
-from kivymd.uix.button import MDIconButton
-
-from kivy.uix.label import Label
-
-from plyer.facades.storagepath import StoragePath
 
 from kivy_strings import *
 
