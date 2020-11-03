@@ -13,13 +13,9 @@ from kivymd.uix.relativelayout import MDRelativeLayout
 from kivymd.uix.textfield import MDTextField
 from kivymd.uix.button import MDFillRoundFlatIconButton, MDRaisedButton, MDIconButton, MDRectangleFlatButton, MDRectangleFlatIconButton
 
-from kivymd.uix.snackbar import Snackbar
 from kivymd.toast import toast
 
-
-from kivymd.uix.gridlayout import GridLayout, MDGridLayout
-from kivymd.uix.boxlayout import MDBoxLayout
-from kivymd.uix.floatlayout import FloatLayout
+from kivymd.uix.gridlayout import MDGridLayout
 from kivy.uix.relativelayout import RelativeLayout
 
 from kivy.properties import ObjectProperty, NumericProperty, StringProperty
@@ -97,7 +93,7 @@ class MangaSearchPage(RelativeLayout):
         self.downloader_sites = ["manganelo", "rawdevart", "kissmanga", "senmanga"]
 
         # Side menu
-        icons = iter(["./Manga Site Logos/manga_nelo_icon.png", "./Manga Site Logos/rawdevart_logo.png","./Manga Site Logos/kissmanga_logo.png", "./Manga Site Logos/sen_manga_logo.png"])
+        icons = iter(["./Manga_Site_Logos/manga_nelo_icon.png", "./Manga_Site_Logos/rawdevart_logo.png","./Manga_Site_Logos/kissmanga_logo.png", "./Manga_Site_Logos/sen_manga_logo.png"])
         menu_items = [{"height": "70dp", "right_content_cls": RightContentCls(site), "icon": next(icons), "text": site} for site in self.downloader_sites]
         self.btn = MDRaisedButton(text="Manga sites", pos_hint={"center_x": .85, "center_y": .5})
         self.btn.bind(on_press=lambda x: self.menu.open())

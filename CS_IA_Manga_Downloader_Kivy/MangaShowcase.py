@@ -110,6 +110,7 @@ class MangaCoverContainer(ScrollView):
         self.grid.cols = 5 if platform == "win" else 1 # set the num of cols depeneding on device; on android: 1 is easier (UI purpose)
         
         for title, links_tuple in self.manga_data.items():
+            print("linkes tuples", links_tuple)
             self.btn = MangaCoverTile(source=links_tuple[1], text=title, on_release=partial(self.make_request, title))
             self.grid.add_widget(self.btn)
             
