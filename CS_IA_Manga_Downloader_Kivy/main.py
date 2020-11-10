@@ -93,8 +93,8 @@ class MangaDownloader(MDApp):
         super().__init__()
         # C:\Users\dimit\AppData\Roaming\mangadownloader\Manga
         self.manga_root_dir = os.path.join(self.user_data_dir, "Manga")
-        self.english_manga_dir = os.path.join(self.manga_root_dir, "English Manga")
-        self.japanese_manga_dir = os.path.join(self.manga_root_dir, "Raw Japanese Manga")
+        #self.english_manga_dir = os.path.join(self.manga_root_dir, "English Manga")
+        #self.japanese_manga_dir = os.path.join(self.manga_root_dir, "Raw Japanese Manga")
         
     # Build the settings and sets their default values
     def build_config(self, config):
@@ -133,13 +133,16 @@ class MangaDownloader(MDApp):
         self.manga_reading_direction = bool(int(self.config.getint("Settings", "manga_reading_direction"))) or None
         self.manga_swiping_direction = bool(int(self.config.getint("Settings", "manga_swiping_direction"))) or None
         
-        print("before create root meth")
-        print("self.download path", self.download_path)
-        print("self.manga root", self.manga_root_dir)
+        
         # Manga Root Directory
 
         # If the user has changed the default download path (AKA: the manga root path) then set the manga root to the newly set path
         self.manga_root_dir = self.download_path if self.manga_root_dir != self.download_path else self.manga_root_dir
+        print("before create root meth")
+        print("self.download path", self.download_path)
+        print("self.manga root", self.manga_root_dir)
+        self.english_manga_dir = os.path.join(self.manga_root_dir, "English Manga")
+        self.japanese_manga_dir = os.path.join(self.manga_root_dir, "Raw Japanese Manga")
         create_root_dir(self.manga_root_dir)
         create_language_dirs([self.english_manga_dir,self.japanese_manga_dir])
         print("after create root meth")
@@ -201,11 +204,14 @@ class MangaDownloader(MDApp):
         # Moves the root/download folder to the new path
         if key == "download_path" and os.path.isdir(os.path.join(value)):
             src, dst = os.path.join(self.download_path), os.path.join(value)
+            print("src: ", src, "dst: ", dst)
 
             # Changes the src depending on if the user selected path has ends with 'Manga'
-            src = os.path.join(src, "Manga") if not self.download_path.endswith("Manga") else src
+            #src = os.path.join(src, "Manga") if not self.download_path.endswith("Manga") else src
             try:
-                shutil.move(src=src, dst=dst)
+                # Move the english and Japanese manga containing folders to the new destination
+                for i in os.listdir(src):
+                    shutil.move(os.path.join(src,i), dst)
             except PermissionError:
                 pass
                 #self.config.set("Settings", "download_path", os.path.join(value,"Manga"))
