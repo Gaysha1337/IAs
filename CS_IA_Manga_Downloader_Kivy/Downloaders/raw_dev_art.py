@@ -1,5 +1,3 @@
-from functools import partial
-
 from kivy.clock import Clock
 import requests, os, re
 from bs4 import BeautifulSoup
@@ -35,8 +33,6 @@ class RawDevArt:
                 self.manga_links = ["https://rawdevart.com" + div.select_one("a.head").get("href") for div in manga_divs]
                 self.manga_covers = ["https://rawdevart.com" + div.select_one("img.img-fluid").get("src") for div in manga_divs]
                 self.manga_data = dict(zip(self.manga_choices, zip(self.manga_links, self.manga_covers)))
-                #print(self.manga_data)
-                #print(self.manga_covers)
                 
         except:
             self.popup_msg = "Error: The app can't connect to the site. Check internet connection; Site may be blocked"
@@ -61,6 +57,7 @@ class RawDevArt:
 
         progress_bar = tqdm(chapter_links, total=len(chapter_links))
         tile.progressbar.max = len(chapter_links)
+        
         for index, link_dict in enumerate(chapter_links):
             chapter, img_url = link_dict.get("chapter"), link_dict.get("chapter-imgs-link") 
             chapter = re.sub(r'[\\/*?:"<>|]',"",chapter) # Sanitize chapter name for dir/file creation
@@ -68,9 +65,11 @@ class RawDevArt:
             # TODO: Will this work on android ?
             current_chapter_dir = os.path.join(root.japanese_manga_dir,title,chapter)
             #print(os.getcwd(), "cwd")
+            # Make the directories for each chapter
             if not os.path.isdir(current_chapter_dir):
                 os.mkdir(current_chapter_dir)
             os.chdir(current_chapter_dir)
+
             imgs_list = soup_.select("div.mb-3 img.img-fluid.not-lazy")
             for img in imgs_list:
                 with requests.Session() as s:          
@@ -85,9 +84,9 @@ class RawDevArt:
 
             progress_bar.update(1)
             Clock.schedule_once(lambda args: RawDevArt.trigger_call(tile, 1), -1)
-            #break    
+        
         progress_bar.close()
-        print("remove break near line 106 for full testing")
+        
     @staticmethod
     def trigger_call(tile,val):
         tile.progressbar.value+= val

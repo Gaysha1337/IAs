@@ -18,7 +18,6 @@ from kivy.lang import Builder
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.settings import SettingsWithSidebar
 
-
 from kivy_strings import *
 
 settings_json = json.dumps([

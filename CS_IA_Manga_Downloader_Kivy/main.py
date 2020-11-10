@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
-import os, json, plyer, sys, pathlib
+import os
 
+# Kivy
 from kivymd.app import MDApp
 from kivy.properties import StringProperty, DictProperty
 
@@ -22,6 +23,7 @@ from kivy.config import Config
 
 from utils import create_language_dirs, create_root_dir
 
+# Setting a default font (does this work on android?)
 from kivy.core.text import LabelBase, DEFAULT_FONT
 LabelBase.register(DEFAULT_FONT, 'NotoSansCJKjp-Regular.otf')
 

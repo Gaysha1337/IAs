@@ -1,7 +1,6 @@
 import requests, os, re
 from tqdm import tqdm
 from bs4 import BeautifulSoup
-from requests import exceptions
 from kivy.clock import Clock
 
 # delete this line when publishing
@@ -9,11 +8,7 @@ if __name__ != "__main__":
     from utils import create_manga_dirs, download_cover_img, download_manga
 
 # This downloader is for English Manga
-class MangaNelo():
-
-    """
-    download_link --> str: 
-    """
+class MangaNelo:
     def __init__(self,query=None ):
         #self.query = query # User input
         self.query = query
@@ -39,7 +34,7 @@ class MangaNelo():
                 self.manga_choices = [i.find("a").text.replace("\n","") for i in query_search_results.findAll("h3")] # Manga titles
                 self.manga_cover_imgs = [i.get("src") for i in query_search_results.find_all("img")]
                 self.manga_data = dict(zip(self.manga_choices, zip(self.manga_links, self.manga_cover_imgs)))
-                print("printing manga data in manganelo class",self.manga_data)
+                #print("printing manga data in manganelo class",self.manga_data)
         except:
             self.popup_msg = "Error: The app can't connect to the site. Check internet connection; Site may be blocked"
             self.hasErrorOccured = True
@@ -69,6 +64,8 @@ class MangaNelo():
             soup_ = BeautifulSoup(r_.content, features="lxml")
             current_chapter_dir = os.path.join(root.english_manga_dir,title,chapter)
             #print(os.getcwd(), "cwd")
+
+            # Make the directories for each chapter
             if not os.path.isdir(current_chapter_dir):
                 os.mkdir(current_chapter_dir)
             os.chdir(current_chapter_dir)

@@ -2,7 +2,7 @@ import requests, os, re
 from bs4 import BeautifulSoup
 from tqdm import tqdm
 from functools import partial
-from kivy.clock import Clock, mainthread
+from kivy.clock import Clock
 from kivymd.app import MDApp
 
 if __name__ != "__main__":
@@ -69,11 +69,10 @@ class SenManga:
 
             r_ = requests.get(link, headers=headers)
             soup_ = BeautifulSoup(r_.content, features="lxml")
-            total_imgs_num = len([i.get("value") for i in soup.select_one(".page-link select").find_all("option")])
+            total_imgs_num = len([i.get("value") for i in soup_.select_one(".page-link select").find_all("option")])
 
             # TODO: Will this work on android ?
             current_chapter_dir = os.path.join(root.japanese_manga_dir,title,chapter)
-            print(os.getcwd(), "cwd")
             
             if not os.path.isdir(current_chapter_dir):
                 os.mkdir(current_chapter_dir)
@@ -90,10 +89,9 @@ class SenManga:
             # TODO: Is the right way to update the progress bar
             progress_bar.update(1)
             Clock.schedule_once(lambda args: SenManga.trigger_call(tile, 1), -1)
-            #break
+
         progress_bar.close()    
-        print("remove break near line 106 for full testing")
-        #print(all_chapters_list, "all chaps")
+
     @staticmethod
     def trigger_call(tile,val):
         tile.progressbar.value+= val

@@ -1,5 +1,4 @@
-import os, pathlib, json, requests, glob, re
-from kivy import lang
+import os, pathlib, json, requests, re
 
 from kivymd.app import MDApp
 from kivy.utils import platform # Used to tell if platform is android

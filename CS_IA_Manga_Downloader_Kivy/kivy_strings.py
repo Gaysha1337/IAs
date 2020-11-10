@@ -12,8 +12,6 @@ manga_input_kv_str = '''
         pos_hint:{'center_x': 0.5, 'center_y': 0.5}
         on_text_validate: root.get_manga_query_data()
         focused: True
-
-       
 '''
 
 manga_display_kv_str = '''

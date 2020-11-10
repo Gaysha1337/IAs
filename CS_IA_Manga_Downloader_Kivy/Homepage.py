@@ -254,7 +254,7 @@ class DownloadedMangaDisplay(ScrollView):
         #print("inst: ", inst, "title: ", title, "manga path", manga_path)
         # This bit acts as refresh for the manga cover display
         screen_name = "Manga Reader Chapter Selection"
-        #if not self.master.screen_manager.has_screen("Manga Reader"):
+
         if not self.master.screen_manager.has_screen(screen_name):
             self.master.create_manga_reader_chapter_selection(title, manga_path)
 
@@ -283,25 +283,5 @@ class LandingPage(RelativeLayout):
         self.master.manga_search_page.ids["SearchFieldID"].focus = True if inst.text == "Download Manga" else False
         print(self.master.screen_manager.screen_names)        
 
-
-"""
-class MangaDownloader(MDApp):
-    def build(self):
-        self.theme_cls.theme_style = "Dark"
-        self.theme_cls.primary_palette = "Green"
-
-        self.root = Builder.load_file(os.path.join(".","KivyFiles","manga_input.kv"))
-
-        self.screen_manager = ScreenManager()
-
-        self.manga_search_page = MangaSearchPage(self)
-        screen = Screen(name="Search page")
-        screen.add_widget(self.manga_search_page)
-        self.screen_manager.add_widget(screen)
-        
-
-        return self.screen_manager
-        # return screen
-"""
 if __name__ == "__main__":
     MangaDownloader().run()

@@ -29,13 +29,11 @@ class KissManga:
                 manga_divs, self.manga_data = [], {}
 
             else:
-                print("in here")
                 # TODO: These vals were copy pasted from senmanga.py, they need to be changed                 
                 self.manga_choices = [a.text.strip() for a in manga_divs]
                 self.manga_links = ["https://kissmanga.org" + a.get("href") for a in manga_divs]
                 self.manga_covers = [KissManga.get_cover_img(a) for a in self.manga_links]
                 self.manga_data = dict(zip(self.manga_choices, zip(self.manga_links, self.manga_covers)))
-                print(self.manga_data)
                 
         except:
             self.popup_msg = "Error: The app can't connect to Kiss Manga. Check internet connection; Site may be blocked"
@@ -47,18 +45,13 @@ class KissManga:
     def get_cover_img(url):
         return "https://kissmanga.org" + BeautifulSoup(requests.get(url).content, features="lxml").select_one("div.a_center img").get("src")
         
-
-
-
     # Root is the running app
     # Links is a tuple contain: A link to the cover image and the download link        
     @staticmethod
     def download_manga(root,tile,title,links):
         title = re.sub(r'[\\/*?:"<>|]',"",title) # Sanitize title name for dir/file creation
         manga_download_link, cover_img_link = links
-       # create_manga_dirs(title) # After being called, the user should be in the dir for that manga
-                
-        #download_cover_img(cover_img_link, cover_img_link.split("/")[-1])
+       
         soup = BeautifulSoup(requests.get(manga_download_link).content, features="lxml")
         chapter_links = [{"img-link":"https://rawdevart.com" + elem.get("href"), "chapter":elem.text.strip()} for elem in soup.select(".listing.listing8515.full a", text=True)][::-1]
         chapter_links = [{"chapter-link":"https://kissmanga.org"+ a.get("href"), "chapter-name":" ".join(a.text.strip().split())} for a in soup.select(".listing.listing8515.full a")][::-1]
@@ -81,18 +74,16 @@ class KissManga:
 
             for img in imgs_list:
                 with requests.Session() as s:          
-                    response = s.get(img.get('src'), stream=True)
+                    response = s.get(img.get('src'))
                     filename = f"{title} {chapter_name} - .{img.get('src').split('.')[-1]}"
-                    
-                    total_size_in_bytes, block_size= int(response.headers.get('content-length', 0)), 1024 #1 Kibibyte
-                    
+                                        
                     with open(filename, "wb") as f:
-                        for chunk in response.iter_content(block_size):
-                            f.write(chunk)
-                #progress_bar.close()
+                        f.write(response.content)
             progress_bar.update(1)
             Clock.schedule_once(lambda args: KissManga.trigger_call(tile, 1), -1)
             #break
+    
+        progress_bar.close()
     @staticmethod
     def trigger_call(tile,val):
         tile.progressbar.value+= val

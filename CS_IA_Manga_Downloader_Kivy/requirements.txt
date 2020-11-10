@@ -5,3 +5,6 @@ requests
 bs4
 tqdm
 pykakasi
+os
+re
+threading

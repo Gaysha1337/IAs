@@ -13,7 +13,7 @@ package.domain = org.test
 source.dir = .
 
 # (list) Source files to include (let empty to include all the files)
-source.include_exts = py,png,jpg,kv,atlas,ini,ttf, otf
+source.include_exts = #py,png,jpg,kv,atlas,ini,ttf, otf
 
 # (list) List of inclusions using pattern matching
 #source.include_patterns = assets/*,images/*.png, Manga_Site_Logos/*
@@ -36,7 +36,9 @@ version = 0.1
 
 # (list) Application requirements
 # comma separated e.g. requirements = sqlite3,kivy
-requirements = python3,kivy==2.0.0rc4,kivymd==0.104.2.dev0,requests,bs4,tqdm,pykakasi,plyer
+# kivy==2.0.0rc4 = https://github.com/kivy/kivy/archive/master.zip
+# kivymd==0.104.2.dev0 = https://github.com/kivymd/KivyMD/archive/master.zip
+requirements = python3,https://github.com/kivy/kivy/archive/master.zip,https://github.com/kivymd/KivyMD/archive/master.zip,requests,bs4,tqdm,pykakasi,plyer,os,json,re,threading,pathlib
 
 # (str) Custom source folders for requirements
 # Sets custom source for any requirements with recipes
