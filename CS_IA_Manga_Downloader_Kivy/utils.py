@@ -1,4 +1,4 @@
-import os, pathlib, json, requests, re
+import os, pathlib, json, requests, re, shutil
 
 from kivymd.app import MDApp
 from kivy.utils import platform # Used to tell if platform is android
@@ -59,6 +59,10 @@ def create_language_dirs(language_dirs:list):
 def get_root_dir():
     device_root = os.path.abspath(pathlib.Path(os.path.expanduser("~")).drive)
 
+
+def move_manga_root(src, dst):
+    shutil.move(src, dst)
+
 def create_manga_dirs(downloader, title):
     #manga_root_dir = os.path.join(os.path.expanduser("~/Desktop"), "Manga")
     home_dir = os.path.expanduser("~/Desktop") if platform == "win" else None
@@ -85,6 +89,6 @@ def convert_from_japanese_text(text):
     kks = pykakasi.kakasi()
     result = kks.convert(text)
     return " ".join([d.get("hepburn") for d in result])
-
-print(convert_from_japanese_text("東京"))
+if __name__ == "__main__":
+    print(convert_from_japanese_text("    東京++++"))
 

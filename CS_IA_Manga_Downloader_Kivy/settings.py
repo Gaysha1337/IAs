@@ -52,7 +52,7 @@ settings_json = json.dumps([
 
     {'type': 'path',
      'title': 'Download Folder Path',
-     'desc': "All downloaded manga will be found in this folder called 'manga_downloader_root' ",
+     'desc': "All downloaded manga will be found in this folder called 'Manga' ",
      'section': 'Settings',
      'key': 'DownloadPath'},
      
@@ -94,7 +94,7 @@ class AppSettings:
 
             {'type': 'path',
             'title': 'Download Folder Path',
-            'desc': "All downloaded manga will be found in a folder called 'Manga' ",
+            'desc': "All downloaded manga will be found in a folder called 'Manga'. If you move this folder to a new path, a folder called 'Manga' will be made. If you are changing the folder to a that has already has a folder called 'Manga' make sure to click inside or else you will have nested folders ",
             'section': 'Settings',
             'key': 'download_path'},
 

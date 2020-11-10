@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
+import shutil
 
 # Kivy
 from kivymd.app import MDApp
@@ -91,18 +92,33 @@ class MangaDownloader(MDApp):
     def __init__(self):
         super().__init__()
         # C:\Users\dimit\AppData\Roaming\mangadownloader\Manga
-
         self.manga_root_dir = os.path.join(self.user_data_dir, "Manga")
         self.english_manga_dir = os.path.join(self.manga_root_dir, "English Manga")
         self.japanese_manga_dir = os.path.join(self.manga_root_dir, "Raw Japanese Manga")
         
+    # Build the settings and sets their default values
+    def build_config(self, config):
+        #TODO: Not sure if this applies to PC
+        #user_downloads_dir = plyer.storagepath.get_downloads_dir()
+        #user_downloads_dir = os.path.join(self.user_data_dir, "Manga")
+
+        config.setdefaults('Settings', {
+            'theme_mode':'Dark',
+            'color_scheme':'Pink',
+            'default_downloader': "rawdevart",
+            'download_path':self.manga_root_dir,
+            'manga_reading_direction': int(False), # Defaults to reading horizontally (swiping)
+            'manga_swiping_direction':int(False), # Defaults to English style: left to right; True is Japanese (right to left)
+            'optionsexample': 'option2',
+            }
+        )
+
+    def build_settings(self, settings):
+        # You can add multiple panels
+        settings.add_json_panel('Manga Downloader Settings', self.config, data=AppSettings.json_settings)
     
     def build(self):
         self.title = "Manga Downloader"
-
-        # Manga Root Directory
-        create_root_dir(self.manga_root_dir)
-        create_language_dirs([self.english_manga_dir,self.japanese_manga_dir])
 
         # Settings
         self.settings_cls = AppSettings.ScrollableSettings # Section is called 'Settings'
@@ -114,9 +130,21 @@ class MangaDownloader(MDApp):
         self.download_path = self.config.get("Settings", "download_path") # The path where all manga will be downloaded to (default is manga root)
         self.downloader = self.config.get("Settings", "default_downloader") # The default manga downloading site
         # getint is used to convert the string val into int and into a boolean
-        self.manga_reading_direction = bool(self.config.getint("Settings", "manga_reading_direction"))
-        self.manga_swiping_direction = bool(self.config.getint("Settings", "manga_swiping_direction"))
+        self.manga_reading_direction = bool(int(self.config.getint("Settings", "manga_reading_direction"))) or None
+        self.manga_swiping_direction = bool(int(self.config.getint("Settings", "manga_swiping_direction"))) or None
         
+        print("before create root meth")
+        print("self.download path", self.download_path)
+        print("self.manga root", self.manga_root_dir)
+        # Manga Root Directory
+
+        # If the user has changed the default download path (AKA: the manga root path) then set the manga root to the newly set path
+        self.manga_root_dir = self.download_path if self.manga_root_dir != self.download_path else self.manga_root_dir
+        create_root_dir(self.manga_root_dir)
+        create_language_dirs([self.english_manga_dir,self.japanese_manga_dir])
+        print("after create root meth")
+        print("self.download path", self.download_path)
+        print("self.manga root", self.manga_root_dir)
         # Screen related
         self.screen_manager = ScreenManager()
 
@@ -166,49 +194,36 @@ class MangaDownloader(MDApp):
         screen.add_widget(self.manga_reader)
         self.screen_manager.add_widget(screen)
 
-    # Build the settings and sets their default values
-    def build_config(self, config):
-        #TODO: Not sure if this applies to PC
-        #user_downloads_dir = plyer.storagepath.get_downloads_dir()
-        #user_downloads_dir = os.path.join(self.user_data_dir, "Manga")
-
-        config.setdefaults('Settings', {
-            'theme_mode':'Dark',
-            'color_scheme':'Pink',
-            'default_downloader': "rawdevart",
-            'download_path':self.manga_root_dir,
-            'manga_reading_direction': False, # Defaults to reading horizontally (swiping)
-            'manga_swiping_direction':False, # Defaults to English style: left to right; True is Japanese (right to left)
-            'optionsexample': 'option2',
-            }
-        )
-
-    def build_settings(self, settings):
-        # You can add multiple panels
-        settings.add_json_panel('Manga Downloader Settings', self.config, data=AppSettings.json_settings)
-
     # This method can handle any changes made to the settings, it also changes them when they are changed
     def on_config_change(self, config, section, key, value):
         print(config, section, key, value, "fuwhrif")
+
+        # Moves the root/download folder to the new path
+        if key == "download_path" and os.path.isdir(os.path.join(value)):
+            src, dst = os.path.join(self.download_path), os.path.join(value)
+
+            # Changes the src depending on if the user selected path has ends with 'Manga'
+            src = os.path.join(src, "Manga") if not self.download_path.endswith("Manga") else src
+            try:
+                shutil.move(src=src, dst=dst)
+            except PermissionError:
+                pass
+                #self.config.set("Settings", "download_path", os.path.join(value,"Manga"))
+                #self.config.write()
+            self.manga_root_dir = self.download_path = self.config.get("Settings", "download_path")
+        
         self.theme_cls.theme_style = self.config.get("Settings", "theme_mode")
         self.theme_cls.primary_palette = self.config.get("Settings", "color_scheme")
         #self.pc_download_path = self.config.get("Settings", "PCDownloadPath")
         #self.android_download_path = self.config.get("Settings", "AndroidDownloadPath")
-        self.download_path = self.config.get("Settings", "download_path") 
+        #self.download_path = self.config.get("Settings", "download_path") 
         self.downloader = self.config.get("Settings", "default_downloader")
 
-        self.manga_reading_direction = bool(self.config.getint("Settings", "manga_reading_direction"))
-        self.manga_swiping_direction = bool(self.config.getint("Settings", "manga_swiping_direction"))
+        self.manga_reading_direction = bool(int(self.config.getint("Settings", "manga_reading_direction")))
+        self.manga_swiping_direction = bool(int(self.config.getint("Settings", "manga_swiping_direction")))
 
         #print("reading dir:",self.manga_reading_direction, "self.swiping dir: ,", self.manga_swiping_direction)
         
-
-        
-        
-
-
-        
-
 
 if __name__ == "__main__":
     MangaDownloader().run()

@@ -12,7 +12,7 @@ class RawDevArt:
     def __init__(self, query=None):
         # Need to find a way to get manga from all pages
         # https://rawdevart.com/search/?page=2&title=the
-        self.query_url = "https://rawdevart.com/search/?title={}".format(query.strip().replace(" ","+"))
+        self.query_url = f"https://rawdevart.com/search/?title={query.strip().replace(' ','+')}"
         self.request_error_code = None
         self.popup_msg = None
         self.hasErrorOccured = False
@@ -86,7 +86,7 @@ class RawDevArt:
             Clock.schedule_once(lambda args: RawDevArt.trigger_call(tile, 1), -1)
         
         progress_bar.close()
-        
+
     @staticmethod
     def trigger_call(tile,val):
         tile.progressbar.value+= val

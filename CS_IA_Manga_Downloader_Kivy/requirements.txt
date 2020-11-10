@@ -8,3 +8,4 @@ pykakasi
 os
 re
 threading
+shutil

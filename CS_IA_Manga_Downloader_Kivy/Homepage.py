@@ -117,8 +117,9 @@ class MangaSearchPage(RelativeLayout):
 
     # This method is called within the kivy_strings.py file, on the event: on_text_validate
     def get_manga_query_data(self):
+        self.input_bar.text = self.input_bar.text.strip()
         self.master.input_query = self.input_bar.text
-
+        
         # Manga Nelo only accepts english input:
         if self.master.downloader == "manganelo":
             os.chdir(self.master.english_manga_dir)
