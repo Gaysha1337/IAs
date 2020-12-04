@@ -1,12 +1,15 @@
+from kivymd.app import MDApp
+from kivy.clock import Clock, mainthread
+
 import requests, os, re
 from bs4 import BeautifulSoup
 from tqdm import tqdm
 from functools import partial
-from kivy.clock import Clock
-from kivymd.app import MDApp
+import concurrent.futures
+
 
 if __name__ != "__main__":
-    from utils import create_manga_dirs, download_cover_img, download_manga
+    from utils import create_manga_dirs, download_cover_img
 
 # Japanese Manga Downloader
 class SenManga:
@@ -15,14 +18,15 @@ class SenManga:
         # Need to find a way to get manga from all pages
         # https://rawdevart.com/search/?page=2&title=the
         self.query_url = "https://raw.senmanga.com/search?s={}".format(query.strip().replace(" ","+"))
+        self.headers = {"user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.75 Safari/537.36"}
         self.request_error_code = None
         self.popup_msg = None
         self.hasErrorOccured = False
         self.master = MDApp.get_running_app()
 
         try: 
-            headers = {"user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.75 Safari/537.36"}
-            request_obj = requests.get(self.query_url, headers=headers)
+            #headers = {"user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.75 Safari/537.36"}
+            request_obj = requests.get(self.query_url, headers=self.headers)
             self.request_error_code = request_obj.status_code
             soup = BeautifulSoup(request_obj.content,features="lxml")
             manga_divs = soup.select(".series")
@@ -52,8 +56,8 @@ class SenManga:
         #create_manga_dirs(title) # After being called, the user should be in the dir for that manga
                 
         #download_cover_img(cover_img_link, cover_img_link.split("/")[-1])
-        headers = {"user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.75 Safari/537.36"}
-        r = requests.get(manga_download_link, headers=headers)
+        #headers = {"user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.75 Safari/537.36"}
+        r = requests.get(manga_download_link, headers=SenManga.headers)
         soup = BeautifulSoup(r.content, features="lxml")
         chapter_divs = soup.select(".list")[1]
 
@@ -79,19 +83,36 @@ class SenManga:
             os.chdir(current_chapter_dir)
             imgs_list = [link.replace("raw.senmanga.com", "delivery.senmanga.com/viewer") + "/" + str(img_num) for img_num in range(1,total_imgs_num + 1) ]
 
+            with concurrent.futures.ThreadPoolExecutor(max_workers=12) as executor:
+                #args = [img.get('src'), title, chapter_name, page_num]
+                futures = [executor.submit(SenManga.download_img, img_url=img, title=title, chapter_name=chapter) for page_num, img in enumerate(imgs_list)]
+                for future in futures:
+                    result = future.result()
+            """
             for img in imgs_list:
                 with requests.Session() as s:
                     response = s.get(img, headers=headers)
                     filename = title + chapter + img.split("/")[-1] + ".jpg"
                     with open(filename, "wb") as f:
                         f.write(response.content)
-                
+            """    
             # TODO: Is the right way to update the progress bar
             progress_bar.update(1)
             Clock.schedule_once(lambda args: SenManga.trigger_call(tile, 1), -1)
 
         progress_bar.close()    
 
+    @staticmethod
+    def download_img(img_url, title, chapter_name):
+        with requests.Session() as s:          
+            response = s.get(img_url, headers=SenManga.headers)
+            filename = f"{title} {chapter_name} - {img_url.split('/')[-1]}.jpg"
+            filename = re.sub(r'[\\/*?:"<>|]',"",filename) # Sanitize filename for creation
+                        
+            with open(filename, "wb") as f:
+                f.write(response.content)
+    
+    #@mainthread
     @staticmethod
     def trigger_call(tile,val):
         tile.progressbar.value+= val

@@ -6,6 +6,11 @@ bs4
 tqdm
 pykakasi
 os
+pathlib
 re
 threading
+concurrent.futures # Built in
 shutil
+lxml
+json
+natsort

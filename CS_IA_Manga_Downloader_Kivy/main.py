@@ -1,20 +1,23 @@
 # -*- coding: utf-8 -*-
 import os
 import shutil
+from kivy.clock import mainthread
 
 # Kivy
 from kivymd.app import MDApp
-from kivy.properties import StringProperty, DictProperty
+from kivy.properties import StringProperty, DictProperty, BooleanProperty, ObjectProperty
+from kivy.clock import Clock
 
 # Widgets
-from kivymd.uix.button import MDIconButton, MDRectangleFlatIconButton
-from kivymd.uix.snackbar import Snackbar
+from kivymd.uix.button import MDIconButton, MDRectangleFlatIconButton, MDFlatButton
+from kivymd.toast  import toast
 from kivymd.uix.toolbar import MDToolbar
+from kivymd.uix.dialog import MDDialog
 
 # Screens and Screen-related
 from kivy.uix.screenmanager import ScreenManager, Screen
 from Homepage import MangaSearchPage, LandingPage, MangaReadingPage, DownloadedMangaDisplay
-from MangaShowcase import RV, MangaCoverContainer
+from MangaShowcase import MangaCoverContainer
 from MangaReader import MangaReaderChapterSelection, MangaReaderCarousel # This will be a carousel for swiping pages
 
 # Utils
@@ -22,7 +25,7 @@ from kivy.lang import Builder
 from settings import AppSettings
 from kivy.config import Config
 
-from utils import create_language_dirs, create_root_dir
+from utils import create_language_dirs, create_root_dir, move_manga_root, PausableThread
 
 # Setting a default font (does this work on android?)
 from kivy.core.text import LabelBase, DEFAULT_FONT
@@ -42,33 +45,25 @@ Config.set("network","useragent",_USERAGENT)
 class ToolBar(MDToolbar):
     def __init__(self,**kwargs):
         super().__init__(**kwargs)
-        self.title = "Manga Downloader"
+        self.master = MDApp.get_running_app()
+        self.current_screen = self.master.screen_manager.get_screen(self.master.screen_manager.current)
+        self.title = self.master.title
         self.id = "Toolbar"
-        self.pos_hint = {"top":1}#{"center_y":.955}
+        self.pos_hint = {"top":1}
         self.elevation = 10
-        self.left_action_items = [["cog", lambda x: MDApp.get_running_app().open_settings()]]
-        self.right_action_items = [["home", lambda x: self.go_to_home_screen]]
+        self.left_action_items = [["home", lambda x: self.switch_to_screen("Landing Page")],["cog", lambda x: MDApp.get_running_app().open_settings()]]
+        self.right_action_items = [["undo", lambda x: self.switch_to_screen(self.current_screen.prev_screen)]]
         
-    def go_to_home_screen(self, inst):
-        #self.manager.current = "Landing Page"
-        MDApp.get_running_app().screen_manager.current = "Landing Page"
+    def switch_to_screen(self, screen_name):
+        self.master.screen_manager.current = screen_name
 
 class MangaScreen(Screen): 
-    def __init__(self,**kwargs):
+    def __init__(self,prev_screen="Landing Page",**kwargs):
         super().__init__(**kwargs)
+        self.prev_screen = prev_screen
            
     def on_pre_enter(self, *args, **kwargs):
-        self.toolbar = ToolBar(title="Manga Downloader", pos_hint={"top":1})#{"center_y":.955}
-        self.toolbar.left_action_items = [["cog", lambda x: MDApp.get_running_app().open_settings()]]
-        self.toolbar.right_action_items = [["home", lambda x: self.go_to_home_screen()]]
-        self.add_widget(self.toolbar) 
-
-    def go_to_home_screen(self):
-        #self.manager.current = "Search page"
-        self.manager.current = "Landing Page"
-
-    def show_error_popup(self,text):
-        Snackbar(text=text).open()
+        self.add_widget(ToolBar()) 
 
 
 class MangaDownloader(MDApp):
@@ -77,17 +72,28 @@ class MangaDownloader(MDApp):
     manga_data = DictProperty(None)
     # This property will be a reference to the selected manga site from which the app will download from
     downloader = StringProperty(None)
-    # This property will hold a reference to the user's search input (not the manga they chose)
+    # This property will hold a reference to the user's search input (not the manga they chose by clicking a tile)
     input_query = StringProperty(None)
     # This property will hold a reference to the user's selected manga when they click on a tile
     # TODO: Can it be used only for downloading manga or reading it?
     selected_manga = StringProperty(None)
+
+    # This property will check to see if a manga is being downloaded; used to show a popup if the download path is changed
+    # Deprecated
+    is_a_manga_being_downloaded = BooleanProperty(False)
+
+    """ Directories """
     # The folder where all manga will be downloaded to, AKA: the manga root
     manga_root_dir = StringProperty(None)
     # The folders which will contain manga in english or Japanese
     english_manga_dir, japanese_manga_dir = StringProperty(None), StringProperty(None)
     # Reference for the download folder for the selected manga to be downloaded
     current_manga_dir = StringProperty(None)
+    """ Reading Page Related"""
+    # References to directions used while reading a manga
+    reading_direction, swiping_direction = StringProperty(None), StringProperty(None)
+    """ Misc. """
+    download_thread = ObjectProperty(None)
 
     def __init__(self):
         super().__init__()
@@ -95,59 +101,69 @@ class MangaDownloader(MDApp):
         self.manga_root_dir = os.path.join(self.user_data_dir, "Manga")
         #self.english_manga_dir = os.path.join(self.manga_root_dir, "English Manga")
         #self.japanese_manga_dir = os.path.join(self.manga_root_dir, "Raw Japanese Manga")
-        
-    # Build the settings and sets their default values
-    def build_config(self, config):
+
         #TODO: Not sure if this applies to PC
         #user_downloads_dir = plyer.storagepath.get_downloads_dir()
         #user_downloads_dir = os.path.join(self.user_data_dir, "Manga")
-
-        config.setdefaults('Settings', {
+        self.default_settings_vals = {
             'theme_mode':'Dark',
             'color_scheme':'Pink',
             'default_downloader': "rawdevart",
             'download_path':self.manga_root_dir,
-            'manga_reading_direction': int(False), # Defaults to reading horizontally (swiping)
-            'manga_swiping_direction':int(False), # Defaults to English style: left to right; True is Japanese (right to left)
-            'optionsexample': 'option2',
-            }
-        )
+            #'manga_reading_direction': int(False), # Defaults to reading horizontally (swiping)
+            #'manga_swiping_direction':int(False), # Defaults to English style: left to right; True is Japanese (right to left)
+            'manga_reading_direction': 'Swipe Horizontally', # Defaults to reading horizontally (swiping)
+            'manga_swiping_direction':"Right to Left (English style)" # Defaults to English style: left to right
+        }
+        print("Default vals \n",self.default_settings_vals)
+        
+    # Build the settings and sets their default values
+    def build_config(self, config):
+        config.setdefaults('Settings', self.default_settings_vals)
 
     def build_settings(self, settings):
         # You can add multiple panels
         settings.add_json_panel('Manga Downloader Settings', self.config, data=AppSettings.json_settings)
-    
+        
     def build(self):
         self.title = "Manga Downloader"
+        self.dialog = None # Used to get user confirmation
 
         # Settings
         self.settings_cls = AppSettings.ScrollableSettings # Section is called 'Settings'
         self.use_kivy_settings = False
 
-        # Customizable Settings
+        # Customizable Settings 
         self.theme_cls.theme_style = self.config.get("Settings", "theme_mode") # Dark or Light
         self.theme_cls.primary_palette = self.config.get("Settings", "color_scheme")
-        self.download_path = self.config.get("Settings", "download_path") # The path where all manga will be downloaded to (default is manga root)
         self.downloader = self.config.get("Settings", "default_downloader") # The default manga downloading site
+        
+        # The path where all manga will be downloaded to (default is manga root)
+        # If the client changes the download path while a manga is being downloaded an error will pop up
+        self.download_path = self.config.get("Settings", "download_path") 
+        
+        # Do not confuse with the properities above, these are used to read the settings, the ones above are used to apply them
         # getint is used to convert the string val into int and into a boolean
-        self.manga_reading_direction = bool(int(self.config.getint("Settings", "manga_reading_direction"))) or None
-        self.manga_swiping_direction = bool(int(self.config.getint("Settings", "manga_swiping_direction"))) or None
         
-        
-        # Manga Root Directory
+        #self.manga_reading_direction = bool(int(self.config.getint("Settings", "manga_reading_direction"))) or None
+        #self.manga_swiping_direction = bool(int(self.config.getint("Settings", "manga_swiping_direction"))) or None
 
+        self.manga_reading_direction = self.config.get("Settings", "manga_reading_direction")
+        self.manga_swiping_direction = self.config.get("Settings", "manga_swiping_direction")
+        
+        # Root properities
+        #self.swiping_direction = "left" if self.manga_swiping_direction else "right"
+        #self.reading_direction = "bottom" if self.manga_reading_direction else self.swiping_direction
+        # Manga Root Directory
         # If the user has changed the default download path (AKA: the manga root path) then set the manga root to the newly set path
         self.manga_root_dir = self.download_path if self.manga_root_dir != self.download_path else self.manga_root_dir
-        print("before create root meth")
-        print("self.download path", self.download_path)
-        print("self.manga root", self.manga_root_dir)
+        print("before create root meth","self.download path", self.download_path, "self.manga root", self.manga_root_dir, sep="\n")
         self.english_manga_dir = os.path.join(self.manga_root_dir, "English Manga")
         self.japanese_manga_dir = os.path.join(self.manga_root_dir, "Raw Japanese Manga")
         create_root_dir(self.manga_root_dir)
         create_language_dirs([self.english_manga_dir,self.japanese_manga_dir])
-        print("after create root meth")
-        print("self.download path", self.download_path)
-        print("self.manga root", self.manga_root_dir)
+        print("after create root meth", "self.download path", self.download_path, "self.manga root", self.manga_root_dir, sep="\n")
+        
         # Screen related
         self.screen_manager = ScreenManager()
 
@@ -156,67 +172,121 @@ class MangaDownloader(MDApp):
         screen.add_widget(self.landing_page)
         self.screen_manager.add_widget(screen)
 
-        self.manga_reader_page = MangaReadingPage(self)
-        screen = MangaScreen(name="Reading page")
-        screen.add_widget(self.manga_reader_page)
-        self.screen_manager.add_widget(screen)
-
-        self.manga_search_page = MangaSearchPage(self)
-        screen = MangaScreen(name="Search page")
-        screen.add_widget(self.manga_search_page)
-        self.screen_manager.add_widget(screen)
+        self.reading_screens = ["Reading Page", "Manga Reader Chapter Selection", "Manga Reader Carousel"]
+        self.downloading_screens = ["Manga Input Page", "Manga Showcase", "Downloaded Manga Showcase"]
 
         return self.screen_manager
 
+    """ Downloading Related Screens """
+
+    # Creates the page where the user can input a manga to be downloaded
+    def create_manga_search_page(self):
+        self.manga_search_page = MangaSearchPage(self)
+        screen = MangaScreen(name="Manga Input Page")
+        screen.add_widget(self.manga_search_page)
+        self.screen_manager.add_widget(screen)
+    
     # Creates the manga display grid when the user has input a name
     def create_manga_display(self):
         self.manga_display = MangaCoverContainer(self)
-        screen = MangaScreen(name="Manga Showcase")
+        screen = MangaScreen(name="Manga Showcase", prev_screen="Manga Input Page")
         screen.add_widget(self.manga_display)
+        self.screen_manager.add_widget(screen)
+
+    """ Reading Related Screens """
+
+    # Creates the page where the user can choose to read manga in English or Japanese
+    def create_manga_reading_page(self):
+        self.manga_reader_page = MangaReadingPage(self)
+        screen = MangaScreen(name="Reading Page")
+        screen.add_widget(self.manga_reader_page)
         self.screen_manager.add_widget(screen)
 
     # Creates the manga display for all downloaded manga found in a specific language
     def create_manga_read_display(self, language):
         #self.manga_display = RV(self)
         self.download_manga_display = DownloadedMangaDisplay(self, language)
-        screen = MangaScreen(name="Downloaded Manga Showcase")
+        screen = MangaScreen(name="Downloaded Manga Showcase", prev_screen="Reading Page")
         screen.add_widget(self.download_manga_display)
         self.screen_manager.add_widget(screen)
 
     # Creates a display with buttons of the downloaded chapters 
     def create_manga_reader_chapter_selection(self,title, manga_path):
         self.chapter_selector = MangaReaderChapterSelection(self, title, manga_path)
-        screen = MangaScreen(name="Manga Reader Chapter Selection")
+        screen = MangaScreen(name="Manga Reader Chapter Selection", prev_screen="Downloaded Manga Showcase")
         screen.add_widget(self.chapter_selector)
         self.screen_manager.add_widget(screen)
 
     # Creates the swiping carousel for reading a downloaded manga
     def create_manga_reader(self,manga_title,chapter_name,chapter_path):
         self.manga_reader = MangaReaderCarousel(self, manga_title,chapter_name, chapter_path)
-        screen = MangaScreen(name="Manga Reader")
+        screen = MangaScreen(name="Manga Reader Carousel", prev_screen="Manga Reader Chapter Selection")
         screen.add_widget(self.manga_reader)
         self.screen_manager.add_widget(screen)
 
+    def show_dialog(self,proceed_callback):
+        self.dialog = None
+        if not self.dialog:
+            self.dialog = MDDialog(title="Download Path Moved",type="confirmation",
+                text="Warning: Changing the download path while downloading a manga will cause some chapters to be downloaded to the original path and not to the new one.",
+                buttons=[
+                    MDFlatButton(text="PROCEED", on_release=lambda *args:proceed_callback()),
+                    MDFlatButton(text="CANCEL", on_release=lambda *args:self.dialog.dismiss())
+            ])
+            self.dialog.open()
+
     # This method can handle any changes made to the settings, it also changes them when they are changed
     def on_config_change(self, config, section, key, value):
-        print(config, section, key, value, "fuwhrif")
+        print(config, section, key, value, "config change event fired")
+    
+        # Internal function to apply the download path change
+        """
+        This func exists because if the client changes the download path while downloading a manga
+        then not all the chapters will be downloaded to the new path
+        """ 
+        def change_download_path(value=value):
+            root_src, new_dst = os.path.join(self.download_path), os.path.join(value)
+            print("src: ", root_src, "dst: ", new_dst)
+            try:
+                # Move the english and Japanese manga containing folders to the new destination
+                move_manga_root(root_src,new_dst)
+                #toast(f"Download Path was successfully moved to {new_dst}")
+                print(f"Download Path was successfully moved to {new_dst}")
+                self.manga_root_dir = self.download_path = self.config.get("Settings", "download_path")
+                toast(f"Manga Download Path has been changed to {self.manga_root_dir}")
+                self.download_thread.resume()
+            except PermissionError:
+                toast("Permission Error occurred; You maybe don't have access")
+            except:
+                toast("Unknown Error: Files have not been moved")
+            self.download_thread.resume()
+
+        # This will reset all settings to their default values
+        if key == "configchangebuttons":
+            config.setall("Settings",self.default_settings_vals)
+            config.write()
+            self.destroy_settings()
+            self.open_settings()
 
         # Moves the root/download folder to the new path
         if key == "download_path" and os.path.isdir(os.path.join(value)):
-            src, dst = os.path.join(self.download_path), os.path.join(value)
-            print("src: ", src, "dst: ", dst)
-
-            # Changes the src depending on if the user selected path has ends with 'Manga'
-            #src = os.path.join(src, "Manga") if not self.download_path.endswith("Manga") else src
-            try:
-                # Move the english and Japanese manga containing folders to the new destination
-                for i in os.listdir(src):
-                    shutil.move(os.path.join(src,i), dst)
-            except PermissionError:
+            if self.is_a_manga_being_downloaded:
+                # I have given up on this; it is not a part of my requirements
+                """
+                popup_thread = PausableThread(target=self.show_dialog(proceed_callback=change_download_path))
+                self.download_thread.pause()
+                print("paused")
+                #Clock.schedule_once(lambda *args: popup_thread.start())
+                popup_thread.start()
+                popup_thread.join()
+                print("this shouldnt show, wait if paused was called")
+                #Clock.schedule_once(lambda *args:self.show_dialog(proceed_callback=change_download_path),1)
+                """
                 pass
-                #self.config.set("Settings", "download_path", os.path.join(value,"Manga"))
-                #self.config.write()
-            self.manga_root_dir = self.download_path = self.config.get("Settings", "download_path")
+                toast("Warning: The download path has been changed while a manga is being downloaded. All new chapters will be downloaded to the new path")
+            #elif not self.is_a_manga_being_downloaded and not isinstance(self.dialog, MDDialog):
+                #change_download_path()
+            change_download_path()
         
         self.theme_cls.theme_style = self.config.get("Settings", "theme_mode")
         self.theme_cls.primary_palette = self.config.get("Settings", "color_scheme")
@@ -225,8 +295,19 @@ class MangaDownloader(MDApp):
         #self.download_path = self.config.get("Settings", "download_path") 
         self.downloader = self.config.get("Settings", "default_downloader")
 
-        self.manga_reading_direction = bool(int(self.config.getint("Settings", "manga_reading_direction")))
-        self.manga_swiping_direction = bool(int(self.config.getint("Settings", "manga_swiping_direction")))
+        if key == "manga_swiping_direction":
+            #self.manga_swiping_direction = bool(int(self.config.getint("Settings", "manga_swiping_direction")))
+
+            self.manga_swiping_direction = self.config.get("Settings", "manga_swiping_direction")
+            #self.swiping_direction = "left" if self.manga_swiping_direction else "right"
+
+        if key == "manga_reading_direction":
+            #self.manga_reading_direction = bool(int(self.config.getint("Settings", "manga_reading_direction")))
+
+            self.manga_reading_direction = self.config.get("Settings", "manga_reading_direction")
+            #self.reading_direction = "bottom" if self.manga_reading_direction else self.swiping_direction
+        
+        
 
         #print("reading dir:",self.manga_reading_direction, "self.swiping dir: ,", self.manga_swiping_direction)
         

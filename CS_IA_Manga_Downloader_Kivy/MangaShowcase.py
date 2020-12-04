@@ -1,4 +1,4 @@
-import os, threading
+import os, threading, time
 from threading import Thread
 
 from kivymd.uix.boxlayout import MDBoxLayout
@@ -39,35 +39,10 @@ from Downloaders.Senmanga import SenManga
 from kivy.uix.recycleview import RecycleView
 from kivy.uix.scrollview import ScrollView
 
+# Utils
 from kivy.lang import Builder
-from utils import create_manga_dirs
+from utils import create_manga_dirs, PausableThread
 
-from kivy_strings import manga_display_kv_str
-
-
-class RV(RecycleView):
-    manga_data = DictProperty(None)
-
-    def __init__(self, master, **kwargs):
-        super().__init__(**kwargs)
-        self.master = master
-        print(MDApp.get_running_app().manga_data, "in RV class in init")
-        #self.effect_cls = StiffScrollEffect
-
-        self.data = [
-            {
-                'text': str(x),
-                'source': self.manga_data.get(x)[1],
-                'on_release': partial(self.make_request, x),
-                'pos_hint': {'center_x': .5, 'center_y': .5}
-            }
-            for x in self.manga_data
-        ]
-        #print(self.manga_data, "in RV class")
-
-    def make_request(self, title):
-        print(title, self.manga_data.get(title))
-        MangaNelo.download_manga(title, self.manga_data.get(title))
 
 class MangaCoverTile(SmartTileWithLabel):
     instances = []
@@ -95,8 +70,7 @@ class MangaCoverContainer(ScrollView):
         self.master = master
         #self.screen_toolbar = self.master.screen_manager.current_screen.toolbar
         self.manga_data = self.master.manga_data
-        self.downloader_links_methods = {"manganelo":MangaNelo.download_manga, "rawdevart":RawDevArt.download_manga,"kissmanga":KissManga.download_manga,"senmanga":SenManga.download_manga}
-        self.found_manga = [] # This list is ordered like on the screen, self.grid.children is not 
+        self.downloader_links_methods = {"manganelo":MangaNelo.download_manga, "kissmanga":KissManga.download_manga,"rawdevart":RawDevArt.download_manga,"senmanga":SenManga.download_manga}
         self.effect_cls = "ScrollEffect"
         self.scroll_type = ["bars"]
         self.bar_width = "10dp"
@@ -122,10 +96,12 @@ class MangaCoverContainer(ScrollView):
         #self.add_widget(self.grid)
         self.add_widget(self.outer_gird)
 
-    @mainthread
+    #@mainthread
     # the code wont run unless *args is written; it claims '3 args where passed in the partial func above'
     # Note: tile acts as an instance of the button
+    # If the client attempts to change the download path while a manga is being downloaded an error will popup
     def make_request(self,title,tile):
+        self.master.is_a_manga_being_downloaded = True 
         self.master.selected_manga = title
         toast(f"Downloading {title}")
         tile.progressbar.opacity = 1                    
@@ -134,37 +110,10 @@ class MangaCoverContainer(ScrollView):
         create_manga_dirs(self.master.downloader ,title)
         
         print("cwd: ", os.getcwd())
+        
         # Calls the appropriate downloader based on the selected site and starts a thread to allow prevent kivy event loop from locking
-        threading.Thread(target=partial(self.downloader_links_methods.get(self.master.downloader, lambda *args: "invalid downloader or download method"), self.master, tile, title, self.manga_data.get(title))).start()
-
-
-if __name__ == "__main__":
-    Builder.load_string(manga_display_kv_str)
-
-    class MangaScreen(Screen):
-        def __init__(self, **kwargs):
-            super().__init__(**kwargs)
-
-            self.settings_btn = MDIconButton(icon="cog", pos_hint={
-                                             "center_x": .9, "center_y": .9}, user_font_size="64sp", on_press=lambda inst: MDApp.get_running_app().open_settings())
-            # self.settings_btn.bind(on_press = lambda inst: MangaDownloader.get_running_app().open_settings())
-            self.add_widget(self.settings_btn)
-
-            self.home_btn = MDIconButton(icon="home", pos_hint={
-                                         "center_x": .1, "center_y": .9}, user_font_size="64sp")
-            self.home_btn.bind(on_press=self.go_to_home_screen)
-            self.add_widget(self.home_btn)
-
-        def go_to_home_screen(self, inst):
-            self.manager.current = "Search page"
-
-    class MyApp(MDApp):
-        def build(self):
-            self.manager = ScreenManager()
-            self.rv = RV(self)
-            screen = MangaScreen(name="RV")
-            screen.add_widget(self.rv)
-            self.manager.add_widget(screen)
-
-            return self.manager
-    MyApp().run()
+        #threading.Thread(name="Download Thread",target=partial(self.downloader_links_methods.get(self.master.downloader, lambda *args: "invalid downloader or download method"), self.master, tile, title, self.manga_data.get(title))).start()
+        download_thread_target = partial(self.downloader_links_methods.get(self.master.downloader, lambda *args: "invalid downloader or download method"), self.master, tile, title, self.manga_data.get(title))
+        self.master.download_thread = PausableThread(name="Download Thread",target=download_thread_target)
+        self.master.download_thread.daemon = True
+        self.master.download_thread.start()

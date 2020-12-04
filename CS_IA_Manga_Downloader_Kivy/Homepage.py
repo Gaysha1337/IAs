@@ -90,15 +90,15 @@ class MangaSearchPage(RelativeLayout):
         # Downloader related
         #self.query = self.ids.SearchFieldID.text
         self.query = self.input_bar.text
-        self.downloader_sites = ["manganelo", "rawdevart", "kissmanga", "senmanga"]
+        self.downloader_sites = ["manganelo", "kissmanga", "rawdevart", "senmanga"]
 
         # Side menu
-        icons = iter(["./Manga_Site_Logos/manga_nelo_icon.png", "./Manga_Site_Logos/rawdevart_logo.png","./Manga_Site_Logos/kissmanga_logo.png", "./Manga_Site_Logos/sen_manga_logo.png"])
+        icons = iter(["./Manga_Site_Logos/manga_nelo_icon.png","./Manga_Site_Logos/kissmanga_logo.png", "./Manga_Site_Logos/rawdevart_logo.png", "./Manga_Site_Logos/sen_manga_logo.png"])
         menu_items = [{"height": "70dp", "right_content_cls": RightContentCls(site), "icon": next(icons), "text": site} for site in self.downloader_sites]
-        self.btn = MDRaisedButton(text="Manga sites", pos_hint={"center_x": .85, "center_y": .5})
-        self.btn.bind(on_press=lambda x: self.menu.open())
-        self.menu = MDDropdownMenu(caller=self.btn, items=menu_items, width_mult=4)
-        self.menu.bind(on_release=self.menu_callback)
+        self.btn = MDRaisedButton(text="Manga sites", pos_hint={"center_x": .85, "center_y": .5}, on_release=lambda x: self.menu.open())
+        #self.btn.bind(on_release=lambda x: self.menu.open())
+        self.menu = MDDropdownMenu(caller=self.btn, items=menu_items, width_mult=4, on_release=self.menu_callback)
+        #self.menu.bind(on_release=self.menu_callback)
         self.add_widget(self.btn)
 
     # Had to install dev version for callback to work
@@ -280,8 +280,28 @@ class LandingPage(RelativeLayout):
         self.add_widget(self.download_btn)
 
     def go_to_screen(self, inst):
-        self.master.screen_manager.current = 'Search page' if inst.text == "Download Manga" else 'Reading page'
-        self.master.manga_search_page.ids["SearchFieldID"].focus = True if inst.text == "Download Manga" else False
+        
+        #if not self.master.screen_manager.has_screen("Manga Reader"):
+        screen_names = ["Manga Input Page", "Reading Page"]
+        if inst.text == "Download Manga":
+            if not self.master.screen_manager.has_screen(screen_names[0]):
+                self.master.create_manga_search_page()
+            else:
+                self.master.screen_manager.clear_widgets(screens=[self.master.screen_manager.get_screen(screen_names[0])])
+                self.master.create_manga_search_page()
+                self.master.manga_search_page.ids["SearchFieldID"].focus = True if inst.text == "Download Manga" else False
+            self.master.screen_manager.current = screen_names[0]
+        else:
+            if not self.master.screen_manager.has_screen(screen_names[1]):
+                self.master.create_manga_reading_page()
+            else:
+                self.master.screen_manager.clear_widgets(screens=[self.master.screen_manager.get_screen(screen_names[1])])
+                self.master.create_manga_reading_page()
+            self.master.screen_manager.current = screen_names[1]
+
+        #self.master.screen_manager.current = 'Manga Input Page' if inst.text == "Download Manga" else 'Reading Page'
+        #self.master.screen_manager.current = screen_name
+        #self.master.manga_search_page.ids["SearchFieldID"].focus = True if inst.text == "Download Manga" else False
         print(self.master.screen_manager.screen_names)        
 
 if __name__ == "__main__":

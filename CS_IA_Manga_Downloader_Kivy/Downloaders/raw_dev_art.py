@@ -1,11 +1,14 @@
-from kivy.clock import Clock
+from kivymd.app import MDApp
+from kivy.clock import Clock, mainthread
+
 import requests, os, re
 from bs4 import BeautifulSoup
 from tqdm import tqdm
-from kivymd.app import MDApp
+import concurrent.futures
+
 
 if __name__ != "__main__":
-    from utils import create_manga_dirs, download_cover_img, download_manga
+    from utils import create_manga_dirs, download_cover_img
 
 # Japanese Manga Downloader
 class RawDevArt:
@@ -43,7 +46,7 @@ class RawDevArt:
     # Root is the running app
     # Links is a tuple contain: A link to the cover image and the download link        
     @staticmethod
-    def download_manga(root,tile,title,links):
+    def download_manga(root,tile,title,links, *args):
         title = re.sub(r'[\\/*?:"<>|]',"",title) # Sanitize title name for dir/file creation
         manga_download_link, cover_img_link = links
         
@@ -71,6 +74,13 @@ class RawDevArt:
             os.chdir(current_chapter_dir)
 
             imgs_list = soup_.select("div.mb-3 img.img-fluid.not-lazy")
+
+            with concurrent.futures.ThreadPoolExecutor(max_workers=12) as executor:
+                #args = [img.get('src'), title, chapter_name, page_num]
+                futures = [executor.submit(RawDevArt.download_img, img_url=img.get('data-src'), title=title, chapter_name=chapter) for page_num, img in enumerate(imgs_list)]
+                for future in futures:
+                    result = future.result()
+            """        
             for img in imgs_list:
                 with requests.Session() as s:          
                     response = s.get(img.get('data-src'), stream=True)
@@ -78,18 +88,29 @@ class RawDevArt:
                     
                     total_size_in_bytes, block_size= int(response.headers.get('content-length', 0)), 1024 #1 Kibibyte
                     #progress_bar = tqdm(desc=filename, total=total_size_in_bytes, unit='B', unit_scale=True, unit_divisor=1024)
+                    RawDevArt.download_img(img_url=img.get('data-src'), title=title, chapter_name=chapter)
                     with open(filename, "wb") as f:
                         for chunk in response.iter_content(block_size):
                             f.write(chunk)
-
+            """
             progress_bar.update(1)
-            Clock.schedule_once(lambda args: RawDevArt.trigger_call(tile, 1), -1)
+            Clock.schedule_once(lambda *args: RawDevArt.trigger_call(tile, 1), -1)
         
         progress_bar.close()
 
     @staticmethod
     def trigger_call(tile,val):
         tile.progressbar.value+= val
+
+    @staticmethod
+    def download_img(img_url, title, chapter_name):
+        with requests.Session() as s:          
+            response = s.get(img_url)
+            filename = f"{title} {chapter_name} - {img_url.split('/')[-1]}"
+            filename = re.sub(r'[\\/*?:"<>|]',"",filename) # Sanitize filename for creation
+                        
+            with open(filename, "wb") as f:
+                f.write(response.content)
 
 def trash():
     """

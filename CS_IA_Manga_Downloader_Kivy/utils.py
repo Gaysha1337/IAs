@@ -1,26 +1,43 @@
 import os, pathlib, json, requests, re, shutil
+import threading
 
 from kivymd.app import MDApp
 from kivy.utils import platform # Used to tell if platform is android
 from kivymd.toast import toast
 import pykakasi # Used for converting Japanese Kana to Romanji
 
-
-
 root = MDApp.get_running_app()
-# Root is the running app
-# Links is a tuple contain: A link to the cover image and the download link
-def download_manga(root,title, links):
-    #print("in download method in utils; root=",root,", title= ",title, "cover_and_download_links=", links)
-    if root.downloader == "manganelo":
-        print("in utils download, current downloader is manganelo")
-    elif root.downloader == "rawdevart":
-        print("in utils download, current downloader is rawdevart")
-    
+
+
+class PausableThread(threading.Thread):
+    def __init__(self, group=None, target=None, name=None, args=(), kwargs={}):
+        self._event = threading.Event()
+        if target:
+            args = (self,) + args
+        super(PausableThread, self).__init__(group, target, name, args, kwargs)
+
+    def is_paused(self):
+        return self._event.is_set()
+
+    def pause(self):
+        self._event.clear()
+
+    def resume(self):
+        self._event.set()
+
+    def wait_if_paused(self):
+        print("about to call event.wait()")
+        self._event.wait()
+
+
+def pretty_print_default_settings():
+    for k,v in root.default_settings_vals.items():
+        print/k,v
 
 def download_cover_img(img_link, file_name):
     r = requests.get(img_link)
     with open(file_name, "wb") as f:
+        print("Download cover image in: ", os.getcwd())
         f.write(r.content)
 
 def create_root_dir(manga_root_dir):
@@ -50,18 +67,29 @@ def create_language_dirs(language_dirs:list):
             os.mkdir(d)
             print(f"Made directory for {d}")
             toast(f"Made directory for {d}")
+            """
             filename = os.path.join(d, "DO NOT MOVE THIS FOLDER DIRECTLY, USE THE SETTINGS.txt")
             with open(filename, "w") as f:
                 f.write("")
+            """
         else:
             print(f"{d} already exists")
 # Used to check if the user has moved the root TODO: add platform compatibility
 def get_root_dir():
     device_root = os.path.abspath(pathlib.Path(os.path.expanduser("~")).drive)
 
-
-def move_manga_root(src, dst):
-    shutil.move(src, dst)
+#https://stackoverflow.com/questions/5983320/moving-files-and-dir-even-if-they-already-exist-in-dest
+def move_manga_root(src_dir, dest_dir):
+    fileList = os.listdir(src_dir)
+    for i in fileList:
+        src, dest = os.path.join(src_dir, i), os.path.join(dest_dir, i)
+        if os.path.exists(dest):
+            if os.path.isdir(dest):
+                move_manga_root(src, dest)
+                continue
+            else:
+                os.remove(dest)
+        shutil.move(src, dest_dir)
 
 def create_manga_dirs(downloader, title):
     #manga_root_dir = os.path.join(os.path.expanduser("~/Desktop"), "Manga")
@@ -89,6 +117,13 @@ def convert_from_japanese_text(text):
     kks = pykakasi.kakasi()
     result = kks.convert(text)
     return " ".join([d.get("hepburn") for d in result])
+
+
+def download_image(filename, resp):
+    with open(filename, 'wb') as f:
+        for chunk in resp.iter_content(chunk_size=1024):
+            f.write(chunk)
+
 if __name__ == "__main__":
     print(convert_from_japanese_text("    東京++++"))
 
