@@ -5,10 +5,8 @@ from tqdm import tqdm
 from bs4 import BeautifulSoup
 import concurrent.futures
 
-
-# delete this line when publishing
-if __name__ != "__main__":
-    from utils import create_manga_dirs, download_cover_img
+from utils import download_cover_img
+    
 
 # This downloader is for English Manga
 class MangaNelo:
@@ -39,7 +37,6 @@ class MangaNelo:
                 self.manga_choices = [i.find("a").text.replace("\n","") for i in query_search_results.findAll("h3")] # Manga titles
                 self.manga_cover_imgs = [i.get("src") for i in query_search_results.find_all("img")]
                 self.manga_data = dict(zip(self.manga_choices, zip(self.manga_links, self.manga_cover_imgs)))
-                #print("printing manga data in manganelo class",self.manga_data)
         except:
             self.popup_msg = "Error: The app can't connect to the site. Check internet connection; Site may be blocked"
             self.hasErrorOccured = True
@@ -54,56 +51,56 @@ class MangaNelo:
         soup = BeautifulSoup(requests.get(manga_download_link).content, features="lxml")
         
         chapter_links = [{"imgs-link":link.get("href"), "chapter":link.text.strip()} for link in soup.select("a.chapter-name.text-nowrap")][::-1]
+        
+        # A progress bar that updates once a chapter is finished downloading
         progress_bar = tqdm(chapter_links, total=len(chapter_links))
         tile.progressbar.max = len(chapter_links)
-        for index, link_dict in enumerate(chapter_links):
+
+        # This loop will download all images in each chapter
+        for link_dict in chapter_links:
             chapter, link = link_dict.get("chapter"), link_dict.get("imgs-link")
             chapter = re.sub(r'[\\/*?:"<>|]',"",chapter) # Sanitize chapter name for dir/file creation
 
             r_ = requests.get(link, headers= MangaNelo.headers)
             soup_ = BeautifulSoup(r_.content, features="lxml")
             current_chapter_dir = os.path.join(root.english_manga_dir,title,chapter)
-            #print(os.getcwd(), "cwd")
+            
 
-            # Make the directories for each chapter
-            if not os.path.isdir(current_chapter_dir):
-                os.mkdir(current_chapter_dir)
+            # If no chapter directory has been found make one and change to it
+            if not os.path.isdir(current_chapter_dir): os.mkdir(current_chapter_dir)
             os.chdir(current_chapter_dir)
 
+            # The images found for that specific chapter
             imgs_list = soup_.select("div.container-chapter-reader img")
 
+            # Downloads the images from the current chapter iteration using a thread pool
             with concurrent.futures.ThreadPoolExecutor(max_workers=12) as executor:
                 #args = [img.get('src'), title, chapter_name, page_num]
                 futures = [executor.submit(MangaNelo.download_img, img.get('src'), img.get('title')) for img in imgs_list]
                 for future in futures:
                     result = future.result()
-            """
-            for img in imgs_list:
-                # The request session is needed to bypass Cloudfare by setting correct cookies
-                with requests.Session() as s:
-                    response = s.get(img.get("src"), headers=MangaNelo.headers)
-                    filename = img.get("title") + img.get("src").split("/")[-1]
-                    filename = re.sub(r'[\\/*?:"<>|]',"",filename) # Sanitize filename for creation
-
-                    with open(filename, "wb") as f:
-                        f.write(response.content)
-            """
-            
+           
+            # Update the progress bar after one chapter is downloaded 
             progress_bar.update(1)
             Clock.schedule_once(lambda *args: MangaNelo.trigger_call(tile, 1), -1)
 
         progress_bar.close()
+        Clock.schedule_once(lambda *args: tile.reset_progressbar(), 1) 
+        
 
     @staticmethod
     def download_img(img_url, title):
         with requests.Session() as s:          
-            response = s.get(img_url, headers=MangaNelo.headers)
+            response = s.get(img_url, headers=MangaNelo.headers, stream=True)
             filename = f"{title} + {img_url.split('/')[-1]}"
             filename = re.sub("Vol\.\d*","",filename) # This regex will remove the word vol to sort them alphabetically
             filename = re.sub(r'[\\/*?:"<>|]',"",filename) # Sanitize filename for creation
-                        
+            
             with open(filename, "wb") as f:
-                f.write(response.content)
+                #f.write(response.content)
+                for chunk in response.iter_content(chunk_size=1024):
+                    f.write(chunk)
+            
     #@mainthread
     @staticmethod
     def trigger_call(tile,val):

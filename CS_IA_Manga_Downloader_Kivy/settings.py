@@ -12,32 +12,10 @@ from kivy.uix.popup import Popup
 from kivymd.uix.dialog import MDDialog
 
 # Used to create custom settings
-from kivy.uix.settings import Settings
-from kivy.uix.settings import SettingsWithSpinner, SettingsWithSidebar, InterfaceWithSidebar
-from kivy.uix.settings import SettingItem
-from kivy.uix.settings import SettingOptions
-from kivy.uix.settings import SettingSpacer
+from kivy.uix.settings import Settings, SettingsWithSidebar ,SettingItem, SettingOptions, SettingSpacer
 
-class AppSettings:
 
-    """
-    {'type': 'bool',
-    'title': 'Manga Reading Direction',
-    'desc': 'Turn on to scroll vertically while reading. Turn off to swipe horizontally for reading',
-    'section': 'Settings',
-    'key': 'manga_reading_direction'
-    },
-    """
-
-    """
-    {'type': 'bool',
-    'title': 'Manga Reading Swipe Direction for page turning',
-    'desc': 'Turn on to use the Japanese way of reading manga: Left to Right, while swiping; default is: Right to Left.',
-    'section': 'Settings',
-    'key': 'manga_swiping_direction'
-    },
-    """
-    
+class AppSettings:    
     json_settings = json.dumps([
         {'type': 'title', 'title': 'Color Scheme and Theme Settings'},
 
@@ -142,17 +120,20 @@ class AppSettings:
             kw = kwargs.copy()
             kw.pop('buttons', None)
             super(SettingItem, self).__init__(**kw)
+            
             for aButton in kwargs["buttons"]:
-                oButton=Button(text=aButton['title'], font_size= '15sp')
+                oButton=Button(text=aButton['title'], font_size= '15sp', on_release=self.on_button_press)
                 oButton.ID=aButton['id']
                 self.add_widget(oButton)
-                oButton.bind (on_release=self.On_ButtonPressed)
+        
         def set_value(self, section, key, value):
             # set_value normally reads the configparser values and runs on an error
             # to do nothing here
             return
-        def On_ButtonPressed(self,instance):
+        
+        def on_button_press(self,instance):
             self.panel.settings.dispatch('on_config_change',self.panel.config, self.section, self.key, instance.ID)
+    
     class ScrollableSettings(SettingsWithSidebar):
         def __init__(self, *args, **kwargs):
             super().__init__(**kwargs)
@@ -163,8 +144,8 @@ class AppSettings:
             self.register_type('scrolloptions', AppSettings.SettingScrollOptions)
             self.register_type('buttons', AppSettings.SettingButtons)
 
-            print("settings interface csl", self.interface.children[1].children[1])
-            print("interface content", self.interface.children[0].scroll_type)
+            #print("settings interface csl", self.interface.children[1].children[1])
+            #print("interface content", self.interface.children[0].scroll_type)
 
 if __name__ == "__main__":
     #SettingsApp().run()

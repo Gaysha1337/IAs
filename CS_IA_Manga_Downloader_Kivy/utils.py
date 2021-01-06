@@ -30,23 +30,26 @@ class PausableThread(threading.Thread):
         self._event.wait()
 
 
-def pretty_print_default_settings():
-    for k,v in root.default_settings_vals.items():
-        print/k,v
-
+""" Downloading Functions """
+# Downloads the cover image of a manga
 def download_cover_img(img_link, file_name):
     r = requests.get(img_link)
     with open(file_name, "wb") as f:
         print("Download cover image in: ", os.getcwd())
         f.write(r.content)
 
+def download_image(filename, resp):
+    with open(filename, 'wb') as f:
+        for chunk in resp.iter_content(chunk_size=1024):
+            f.write(chunk)
+
 def create_root_dir(manga_root_dir):
     # Root folder doesn't need to be sanitized; I hardcoded the name
     home_dir = os.path.expanduser("~/Desktop") if platform == "win" else None
     #manga_root_dir = os.path.join(os.path.expanduser("~/Desktop"), "Manga") if platform == "win" else None
 
-    # Makes a "root" for all downloaded mangas; Makes a folder that keeps all ur downloaded manga
-    #manga_root_dir = re.sub(r'[\\/*?:"<>|]',"",manga_root_dir)
+    # Makes a "root" folder to store all your downloaded manga
+    
     if not os.path.isdir(manga_root_dir):
         os.mkdir(manga_root_dir)
         print("Manga root made; Current directory {manga_root_dir}")
@@ -74,9 +77,6 @@ def create_language_dirs(language_dirs:list):
             """
         else:
             print(f"{d} already exists")
-# Used to check if the user has moved the root TODO: add platform compatibility
-def get_root_dir():
-    device_root = os.path.abspath(pathlib.Path(os.path.expanduser("~")).drive)
 
 #https://stackoverflow.com/questions/5983320/moving-files-and-dir-even-if-they-already-exist-in-dest
 def move_manga_root(src_dir, dest_dir):
@@ -112,17 +112,14 @@ def create_manga_dirs(downloader, title):
         #toast("You already have a folder for {}, if you would like to redownload this manga, please delete its folder".format(title.capitalize()))
     os.chdir(current_manga_dir)
 
-
 def convert_from_japanese_text(text):
     kks = pykakasi.kakasi()
     result = kks.convert(text)
     return " ".join([d.get("hepburn") for d in result])
 
-
-def download_image(filename, resp):
-    with open(filename, 'wb') as f:
-        for chunk in resp.iter_content(chunk_size=1024):
-            f.write(chunk)
+# Used to check if the user has moved the root TODO: add platform compatibility
+def get_root_dir():
+    device_root = os.path.abspath(pathlib.Path(os.path.expanduser("~")).drive)
 
 if __name__ == "__main__":
     print(convert_from_japanese_text("    東京++++"))

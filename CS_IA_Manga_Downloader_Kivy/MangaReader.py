@@ -87,9 +87,6 @@ class MangaReaderCarousel(AnchorLayout):
         # padding: [padding_left, padding_top, padding_right, padding_bottom]
         self.padding=("0dp", "100dp", "0dp", "20dp")
 
-        #self.swiping_direction, self.reading_direction = self.master.swiping_direction, self.master.reading_direction
-        #print("reading dir:",self.master.manga_reading_direction, " car self.swiping dir: ,", self.master.manga_swiping_direction)
-        
         # True --> Left to right (left)  JP ; False --> Right to left (right) EN
         #self.swiping_direction = "left" if self.master.manga_swiping_direction else "right"
         self.swiping_direction = "left" if self.master.manga_swiping_direction == "Left to Right (Japanese style)" else "right"

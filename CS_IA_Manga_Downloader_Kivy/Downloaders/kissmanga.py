@@ -1,5 +1,4 @@
-from kivy.clock import Clock, mainthread
-#from utils import create_manga_dirs, download_cover_img, download_manga
+from kivy.clock import Clock
 from kivymd.toast import toast
 from kivymd.app import MDApp
 
@@ -35,8 +34,7 @@ class KissManga:
                 self.popup_msg = f"No manga called {query} was found while searching Kiss Manga"
                 manga_divs, self.manga_data = [], {}
 
-            else:
-                # TODO: These vals were copy pasted from senmanga.py, they need to be changed                 
+            else:               
                 self.manga_choices = [a.text.strip() for a in manga_divs]
                 self.manga_links = ["https://kissmanga.org" + a.get("href") for a in manga_divs]
                 self.manga_covers = [KissManga.get_cover_img(a) for a in self.manga_links]
@@ -62,13 +60,13 @@ class KissManga:
         soup = BeautifulSoup(requests.get(manga_download_link).content, features="lxml")
         
         chapter_links = [{"chapter-link":"https://kissmanga.org"+ a.get("href"), "chapter-name":" ".join(a.text.strip().split())} for a in soup.select(".listing.listing8515.full a")][::-1]
-        #print(len(chapter_links), "len of chapter links")
-
+        
+        # A progress bar that updates once a chapter is finished downloading
         progress_bar = tqdm(chapter_links, total=len(chapter_links))
         tile.progressbar.max = len(chapter_links)
 
         # This loop will download all images in each chapter
-        for index, link_dict in enumerate(chapter_links):
+        for link_dict in chapter_links:
             chapter_name, chapter_link = link_dict.get("chapter-name"), link_dict.get("chapter-link")
             chapter_name = re.sub(r'[\\/*?:"<>|]',"",chapter_name) # Sanitize chapter name for dir/file creation
             soup_ = BeautifulSoup(requests.get(chapter_link).content, features="lxml")
@@ -76,42 +74,26 @@ class KissManga:
             current_chapter_dir = os.path.join(root.english_manga_dir,title,chapter_name)
             
             # If no chapter directory has been found make one and change to it
-            if not os.path.isdir(current_chapter_dir):
-                os.mkdir(current_chapter_dir)
+            if not os.path.isdir(current_chapter_dir): os.mkdir(current_chapter_dir)
             os.chdir(current_chapter_dir)
 
             # The images found for that specific chapter
             imgs_list = soup_.select("#centerDivVideo img")
 
-            # Downloads the images from the current chapter iteration
+            # Downloads the images from the current chapter iteration using a thread pool
             with concurrent.futures.ThreadPoolExecutor(max_workers=12) as executor:
                 #args = [img.get('src'), title, chapter_name, page_num]
                 futures = [executor.submit(KissManga.download_img, img.get('src'), title, chapter_name, page_num) for page_num, img in enumerate(imgs_list)]
                 for future in futures:
                     result = future.result()
-                       
-                """
-                for page_num, img in enumerate(imgs_list):
-                    #KissManga.download_img(img_url=img.get('src'), title=title, chapter_name=chapter_name, page_num=page_num)
-                                        
-                    with requests.Session() as s:          
-                        response = s.get(img.get('src'))
-                        filename = f"{title} {chapter_name} - {page_num + 1} .{img.get('src').split('.')[-1]}"
-                        # This regex will remove the word vol to sort them alphabetically
-                        filename = re.sub("Vol\.\d*","",filename) 
 
-                        #download_image(filename, response.content)
-                        #print("staring execution of worker")
-                        #executor.map(download_image, filename, response)
-                                            
-                        #with open(filename, "wb") as f:
-                            #f.write(response.content)
-                """
+            # Update the progress bar after one chapter is downloaded           
             progress_bar.update(1)
             Clock.schedule_once(lambda args: KissManga.trigger_call(tile, 1), -1)
-            #break
-    
+
         progress_bar.close()
+        Clock.schedule_once(lambda *args: tile.reset_progressbar(), 1) 
+        
     
     #@mainthread
     @staticmethod
@@ -121,40 +103,15 @@ class KissManga:
     @staticmethod
     def download_img(img_url, title, chapter_name, page_num):
         with requests.Session() as s:          
-            response = s.get(img_url)
+            response = s.get(img_url, stream=True)
             filename = f"{title} {chapter_name} - {page_num + 1} .{img_url.split('.')[-1]}"
             # This regex will remove the word vol to sort them alphabetically
             filename = re.sub("Vol\.\d*","",filename)
-                        
+            filename = re.sub(r'[\\/*?:"<>|]',"",filename) # Sanitize filename for creation
+            
             with open(filename, "wb") as f:
-                f.write(response.content)   
+                #f.write(response.content)  
+                for chunk in response.iter_content(chunk_size=1024):
+                    f.write(chunk) 
         #return f"{filename} has finished downloading"
 
-
-
-if __name__ == "__main__":
-    query = "gangsta"
-    def get_manga_titles():
-        
-        query_url = f"https://kissmanga.org/manga_list?q={query.strip().replace(' ','+')}&action=search"
-
-        headers = {"user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.75 Safari/537.36"}
-        r = requests.get(query_url, headers=headers)
-
-        soup = BeautifulSoup(r.content, features="lxml")
-        manga_divs = soup.select(".item_movies_link")
-        manga_links = ["https://kissmanga.org" + div.get("href") for div in manga_divs]
-        manga_choices = [div.text.strip() for div in manga_divs]
-        manga_covers = [None for div in manga_divs] # No cover images available
-        manga_data = dict(zip(manga_choices, zip(manga_links, manga_covers)))
-    
-    def download_manga():
-        chapters_url = "https://kissmanga.org/manga/read_tokyo_ghoul_manga_online_free4"
-        r = requests.get(chapters_url)
-        soup = BeautifulSoup(r.content, features="lxml")
-        chapter_links = [{"chapter-url":"https://kissmanga.org"+ a.get("href"), "chapter-name":" ".join(a.text.strip().split())} for a in soup.select(".listing.listing8515.full a")][::-1]
-
-        print(chapter_links)
-
-    KissManga("tokyo")
-    

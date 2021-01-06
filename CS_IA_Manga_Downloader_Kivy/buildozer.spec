@@ -38,7 +38,7 @@ version = 0.1
 # comma separated e.g. requirements = sqlite3,kivy
 # kivy==2.0.0rc4 = https://github.com/kivy/kivy/archive/master.zip
 # kivymd==0.104.2.dev0 = https://github.com/kivymd/KivyMD/archive/master.zip
-requirements = python3,https://github.com/kivy/kivy/archive/master.zip,https://github.com/kivymd/KivyMD/archive/master.zip,requests,bs4,tqdm,pykakasi,plyer,os,json,re,threading,pathlib,shutil
+requirements = python3,https://github.com/kivy/kivy/archive/master.zip,https://github.com/kivymd/KivyMD/archive/master.zip,requests,bs4,tqdm,pykakasi,plyer,os,json,re,threading,pathlib,shutil,natsort,lxml,
 
 # (str) Custom source folders for requirements
 # Sets custom source for any requirements with recipes

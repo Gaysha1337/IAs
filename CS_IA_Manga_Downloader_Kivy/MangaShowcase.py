@@ -27,12 +27,11 @@ from kivymd.toast import toast
 from functools import partial
 from kivy.utils import platform  # Used to tell if platform is android
 from kivymd.uix.progressbar import MDProgressBar 
-from kivymd.uix.card import MDCard, MDSeparator
 
 # Downloaders
 from Downloaders.MangaNelo import MangaNelo
-from Downloaders.raw_dev_art import RawDevArt
-from Downloaders.kissmanga import KissManga
+from Downloaders.Rawdevart import RawDevArt
+from Downloaders.Kissmanga import KissManga
 from Downloaders.Senmanga import SenManga
 
 # The ScrollView widget provides a scrollable view
@@ -45,23 +44,20 @@ from utils import create_manga_dirs, PausableThread
 
 
 class MangaCoverTile(SmartTileWithLabel):
-    instances = []
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.__class__.instances.append(self)
         self.size_hint_y = None
         self.height = "240dp"
         self.font_style = "H6"
-        #self.bind(on_release = self.get_tile_data)
-
-        self.progressbar = MDProgressBar(value=0,pos_hint={"center_x":.5,"center_y": .5})
-        self.progressbar.opacity = 0
+        
+        self.progressbar = MDProgressBar(value=0,pos_hint={"center_x":.5,"center_y": .5}, opacity = 0)
         self.add_widget(self.progressbar)
-       
 
-    #TODO: Check if manga is already downloaded
-    def get_tile_data(self,*args):
-        pass
+    def reset_progressbar(self,*args):
+        if isinstance(self.progressbar, MDProgressBar):
+            self.remove_widget(self.progressbar)
+        self.progressbar = MDProgressBar(value=0,pos_hint={"center_x":.5,"center_y": .5}, opacity = 0)
+        self.add_widget(self.progressbar)
 
 # Downloaded Manga Display
 class MangaCoverContainer(ScrollView):
@@ -76,22 +72,25 @@ class MangaCoverContainer(ScrollView):
         self.bar_width = "10dp"
         self.pos_hint = {"top":.9}
         
+        # This grid acts as a container for the number of manga found and the table with the clickable tiles
         self.outer_gird = MDGridLayout(rows=2,adaptive_height=True, padding=("0dp", "20dp", "0dp", "0dp"))
         self.outer_gird.add_widget(MDLabel(text=f"{len(self.manga_data)} manga were found", halign="center",pos_hint = {"center_x":.5,"top":.7}))
         
         # padding: [padding_left, padding_top, padding_right, padding_bottom]
-        self.grid = MDGridLayout(cols=5,adaptive_height=True,padding=("30dp", "50dp", "30dp", "100dp"), spacing="20dp") #padding=("30dp", "5dp")
-        self.grid.cols = 5 if platform == "win" else 1 # set the num of cols depeneding on device; on android: 1 is easier (UI purpose)
+        # This grid acts a table to store all found manga 
+        self.grid = MDGridLayout(cols=5,adaptive_height=True,padding=("30dp", "50dp", "30dp", "100dp"), spacing="20dp") 
+        # Sets the num of cols depending on device; on android: 1 is easier (UI purpose)
+        self.grid.cols = 5 if platform == "win" else 1 
         
         for title, links_tuple in self.manga_data.items():
             print("linkes tuples", links_tuple)
             self.btn = MangaCoverTile(source=links_tuple[1], text=title, on_release=partial(self.make_request, title))
             self.grid.add_widget(self.btn)
             
-        
-        if self.manga_data == {}:
+        # Checks to see if any manga were found; An empty dict means no manga were found with the inputted text
+        if self.manga_data == {}: 
             self.grid.add_widget(MDLabel(text="No Manga found", halign="center",pos_hint={"center_x":.5, "center_y":.5}))
-            #self.outer_gird.add_widget(MDLabel(text="No Manga found", halign="center",pos_hint={"center_x":.5, "center_y":.5}))
+    
         self.outer_gird.add_widget(self.grid)
         #self.add_widget(self.grid)
         self.add_widget(self.outer_gird)
@@ -102,18 +101,14 @@ class MangaCoverContainer(ScrollView):
     # If the client attempts to change the download path while a manga is being downloaded an error will popup
     def make_request(self,title,tile):
         self.master.is_a_manga_being_downloaded = True 
-        self.master.selected_manga = title
         toast(f"Downloading {title}")
         tile.progressbar.opacity = 1                    
-        # Calls the appropriate downloader based on the selected site
-        #self.downloader_links_methods.get(self.master.downloader, lambda *args: "invalid downloader or download method")(self.master, tile,title, self.manga_data.get(title))
-        create_manga_dirs(self.master.downloader ,title)
         
-        print("cwd: ", os.getcwd())
+        # Creates the directory for that manga within the manga root and changes to it
+        create_manga_dirs(self.master.downloader, title)
         
         # Calls the appropriate downloader based on the selected site and starts a thread to allow prevent kivy event loop from locking
         #threading.Thread(name="Download Thread",target=partial(self.downloader_links_methods.get(self.master.downloader, lambda *args: "invalid downloader or download method"), self.master, tile, title, self.manga_data.get(title))).start()
         download_thread_target = partial(self.downloader_links_methods.get(self.master.downloader, lambda *args: "invalid downloader or download method"), self.master, tile, title, self.manga_data.get(title))
-        self.master.download_thread = PausableThread(name="Download Thread",target=download_thread_target)
-        self.master.download_thread.daemon = True
+        self.master.download_thread = Thread(name="Download Thread",target=download_thread_target, daemon=True)
         self.master.download_thread.start()
