@@ -27,7 +27,7 @@ class MangaNelo:
             query_search_results = soup.find("div",attrs={"class":"panel-search-story"})
             
             # Checks to see if the user's manga input was found
-            if query_search_results == None:
+            if query_search_results == None or query_search_results == []:
                 self.hasErrorOccured = True
                 self.popup_msg = f"No manga called {query} was found while searching Manganelo"
                 print(self.popup_msg)

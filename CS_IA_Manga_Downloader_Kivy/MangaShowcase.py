@@ -40,15 +40,17 @@ from kivy.uix.scrollview import ScrollView
 
 # Utils
 from kivy.lang import Builder
-from utils import create_manga_dirs, PausableThread
+from utils import create_manga_dirs
 
 
 class MangaCoverTile(SmartTileWithLabel):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self.master = MDApp.get_running_app()
         self.size_hint_y = None
         self.height = "240dp"
         self.font_style = "H6"
+        #self.size_hint = (.25,.25)
         
         self.progressbar = MDProgressBar(value=0,pos_hint={"center_x":.5,"center_y": .5}, opacity = 0)
         self.add_widget(self.progressbar)
@@ -70,21 +72,23 @@ class MangaCoverContainer(ScrollView):
         self.effect_cls = "ScrollEffect"
         self.scroll_type = ["bars"]
         self.bar_width = "10dp"
+        self.scroll_wheel_distance = "20sp"
+        self.do_scroll_y = True
         self.pos_hint = {"top":.9}
         
+        
         # This grid acts as a container for the number of manga found and the table with the clickable tiles
-        self.outer_gird = MDGridLayout(rows=2,adaptive_height=True, padding=("0dp", "20dp", "0dp", "0dp"))
-        self.outer_gird.add_widget(MDLabel(text=f"{len(self.manga_data)} manga were found", halign="center",pos_hint = {"center_x":.5,"top":.7}))
+        self.outer_gird = MDGridLayout(rows=2, adaptive_height=True, padding=("0dp", "20dp", "0dp", "20dp"), pos_hint={"top":.8})
+        self.outer_gird.add_widget(MDLabel(text=f"{len(self.manga_data)} manga were found", halign="center", pos_hint = {"center_x":.5,"y":.9}))
         
         # padding: [padding_left, padding_top, padding_right, padding_bottom]
+        
         # This grid acts a table to store all found manga 
-        self.grid = MDGridLayout(cols=5,adaptive_height=True,padding=("30dp", "50dp", "30dp", "100dp"), spacing="20dp") 
-        # Sets the num of cols depending on device; on android: 1 is easier (UI purpose)
-        self.grid.cols = 5 if platform == "win" else 1 
+        self.grid = MDStackLayout(adaptive_height=True, orientation="lr-tb", spacing=("20dp","20dp"), padding=("5dp", "30dp", "5dp", "30dp")) 
         
         for title, links_tuple in self.manga_data.items():
             print("linkes tuples", links_tuple)
-            self.btn = MangaCoverTile(source=links_tuple[1], text=title, on_release=partial(self.make_request, title))
+            self.btn = MangaCoverTile(source=links_tuple[1], text=title, on_release=partial(self.make_request, title), size_hint=(.25,.25))
             self.grid.add_widget(self.btn)
             
         # Checks to see if any manga were found; An empty dict means no manga were found with the inputted text
@@ -92,7 +96,6 @@ class MangaCoverContainer(ScrollView):
             self.grid.add_widget(MDLabel(text="No Manga found", halign="center",pos_hint={"center_x":.5, "center_y":.5}))
     
         self.outer_gird.add_widget(self.grid)
-        #self.add_widget(self.grid)
         self.add_widget(self.outer_gird)
 
     #@mainthread
@@ -100,7 +103,7 @@ class MangaCoverContainer(ScrollView):
     # Note: tile acts as an instance of the button
     # If the client attempts to change the download path while a manga is being downloaded an error will popup
     def make_request(self,title,tile):
-        self.master.is_a_manga_being_downloaded = True 
+        self.master.currently_downloading = True 
         toast(f"Downloading {title}")
         tile.progressbar.opacity = 1                    
         

@@ -1,5 +1,4 @@
-import json, plyer
-from kivymd.app import MDApp
+import json, os
 
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.scrollview import ScrollView
@@ -12,9 +11,9 @@ from kivy.uix.popup import Popup
 from kivymd.uix.dialog import MDDialog
 
 # Used to create custom settings
-from kivy.uix.settings import Settings, SettingsWithSidebar ,SettingItem, SettingOptions, SettingSpacer
+from kivy.uix.settings import Settings, SettingsWithSidebar ,SettingItem, SettingOptions, SettingSpacer, SettingPath
 
-
+from utils import resource_path
 class AppSettings:    
     json_settings = json.dumps([
         {'type': 'title', 'title': 'Color Scheme and Theme Settings'},
@@ -45,7 +44,7 @@ class AppSettings:
         'options': ["manganelo", "kissmanga", "rawdevart", "senmanga"]
         },
 
-        {'type': 'path',
+        {'type': 'better_settings_path', # 'type':'path'
         'title': 'Download Folder Path',
         'desc': "All downloaded manga will be found in this folder. It will have 2 sub folders for English and Japanese manga",
         'section': 'Settings',
@@ -80,13 +79,11 @@ class AppSettings:
         "buttons":[{"title":"Reset Settings","id":"reset_settings_btn"}]
         },
     ])
-
+    
     class SettingScrollOptions(SettingOptions):
-
         def _create_popup(self, instance):
             # global oORCA
             # create the popup
-
             content = GridLayout(cols=1, spacing='5dp')
             scrollview = ScrollView(do_scroll_x=False)
             scrollcontent = GridLayout(cols=1,  spacing='5dp', size_hint=(None, None))
@@ -95,13 +92,13 @@ class AppSettings:
             # we need to open the popup first to get the metrics
             popup.open()
             # Add some space on top
-            content.add_widget(Widget(size_hint_y=None, height=dp(2)))
+            #content.add_widget(Widget(size_hint_y=None, height=dp(2)))
+            content.add_widget(SettingSpacer())
             # add all the options
             uid = str(self.uid)
             for option in self.options:
                 state = 'down' if option == self.value else 'normal'
-                btn = ToggleButton(text=option, state=state, group=uid, size=(popup.width, dp(55)), size_hint=(None, None))
-                btn.bind(on_release=self._set_option)
+                btn = ToggleButton(text=option, state=state, group=uid, size=(popup.width, dp(55)), size_hint=(None, None), on_release=self._set_option)
                 scrollcontent.add_widget(btn)
 
             # finally, add a cancel button to return on the previous panel
@@ -109,13 +106,11 @@ class AppSettings:
             content.add_widget(scrollview)
             content.add_widget(SettingSpacer())
             # btn = Button(text='Cancel', size=((oORCA.iAppWidth/2)-sp(25), dp(50)),size_hint=(None, None))
-            btn = Button(text='Cancel', size=(popup.width, dp(50)), size_hint=(0.9, None))
-            btn.bind(on_release=popup.dismiss)
+            btn = Button(text='Cancel', size=(popup.width, dp(50)), size_hint=(0.9, None), on_release=popup.dismiss)
             content.add_widget(btn)
 
     class SettingButtons(SettingItem):
         def __init__(self, **kwargs):
-            self.register_event_type('on_release')
             # For Python3 compatibility we need to drop the buttons keyword when calling super.
             kw = kwargs.copy()
             kw.pop('buttons', None)
@@ -134,18 +129,25 @@ class AppSettings:
         def on_button_press(self,instance):
             self.panel.settings.dispatch('on_config_change',self.panel.config, self.section, self.key, instance.ID)
     
+    class BetterSettingsPath(SettingPath):
+        def _validate(self, instance):
+            print("validate called")
+            self._dismiss()
+            value = self.textinput.selection
+            if not value:
+                return
+            
+            self.value = resource_path(os.path.realpath(value[0]))
+
     class ScrollableSettings(SettingsWithSidebar):
         def __init__(self, *args, **kwargs):
             super().__init__(**kwargs)
+            
             self.content_panel = self.interface.children[0]
-            #self.content_panel.effect_cls = "ScrollEffect"
-            #self.content_panel.scroll_type = ["bars", "content"]
             self.content_panel.bar_width = "10dp"
             self.register_type('scrolloptions', AppSettings.SettingScrollOptions)
             self.register_type('buttons', AppSettings.SettingButtons)
-
-            #print("settings interface csl", self.interface.children[1].children[1])
-            #print("interface content", self.interface.children[0].scroll_type)
+            self.register_type('better_settings_path', AppSettings.BetterSettingsPath)
 
 if __name__ == "__main__":
     #SettingsApp().run()

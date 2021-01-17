@@ -1,67 +1,81 @@
-from functools import partial
 import os, sys
+from functools import partial
 from pathlib import Path
-from kivy.clock import Clock
-from kivy.core.window import Window
-from kivy.uix.scrollview import ScrollView
 from kivymd.app import MDApp
+from kivy.uix.scrollview import ScrollView
 from kivymd.uix.imagelist import SmartTileWithLabel
 from kivymd.uix.label import MDLabel
-from kivymd.uix.relativelayout import MDRelativeLayout
-
-from kivymd.uix.textfield import MDTextField
-from kivymd.uix.button import MDFillRoundFlatIconButton, MDRaisedButton, MDIconButton, MDRectangleFlatButton, MDRectangleFlatIconButton
-
-from kivymd.toast import toast
-
 from kivymd.uix.gridlayout import MDGridLayout
-from kivy.uix.relativelayout import RelativeLayout
+from kivymd.uix.relativelayout import MDRelativeLayout
+from kivymd.uix.stacklayout import MDStackLayout
 
-from kivy.properties import ObjectProperty, NumericProperty, StringProperty
-from kivy.lang import Builder
-from kivy.utils import platform  # Used to tell if platform is android
-
-from kivy.uix.screenmanager import ScreenManager, Screen
+from kivymd.uix.button import MDRaisedButton, MDRectangleFlatButton, MDRectangleFlatIconButton
+from kivymd.toast import toast
 from kivymd.uix.menu import MDDropdownMenu, RightContent
 from kivymd.uix.selectioncontrol import MDCheckbox
 
-from utils import convert_from_japanese_text
-
+# Downloader classes
 from Downloaders.MangaNelo import MangaNelo
 from Downloaders.Rawdevart import RawDevArt
 from Downloaders.Kissmanga import KissManga
 from Downloaders.Senmanga import SenManga
 
-import pykakasi # Used for converting Japanese Kana to Romanji
+# Utils
+from utils import convert_from_japanese_text, resource_path, kill_screen
 
-# Kivy strings
-from kivy_strings import *
+# RelativeLayout
+class LandingPage(MDRelativeLayout):
+    def __init__(self, master, **kwargs):
+        super().__init__(**kwargs)
+        self.master = master
+        # DO NOT DELETE THE SPACES IN "Read Manga"
+        self.btn_texts = ["Download Manga", "Read Manga          "]
 
+        self.download_btn = MDRectangleFlatIconButton(text=self.btn_texts[0], icon="download-box",  pos_hint={"center_x": .5, "center_y": .4}, user_font_size="64sp", on_release=self.go_to_screen)
+        self.read_btn = MDRectangleFlatIconButton(text=self.btn_texts[1], icon="book-open-page-variant", pos_hint={"center_x": .5, "center_y": .6}, user_font_size="64sp", on_release=self.go_to_screen)
+        self.add_widget(self.read_btn)
+        self.add_widget(self.download_btn)
+
+    def go_to_screen(self, inst):
+        if inst.text == "Download Manga":
+            kill_screen("Manga Input Page", lambda *args: self.master.create_manga_search_page())
+            self.master.manga_search_page.ids["SearchFieldID"].focus = True if inst.text == "Download Manga" else False
+            
+        else: kill_screen("Reading Page", lambda*args: self.master.create_manga_reading_page())
 
 class MangaCheckBox(MDCheckbox):
-    instances = []
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.__class__.instances.append(self)
+        #self.__class__.instances.append(self)
+        self.master = MDApp.get_running_app()
         self.active = False
         self.group = "group"
         self.check_btn = MDCheckbox(pos_hint={'center_x': .5, 'center_y': .5}, size=("48dp", "48dp"), size_hint=(None, None))
         self.checkbox_site = None
         self.allow_no_selection = False
-        # self.add_widget(self.check_btn) # This line adds an extra checkbox, I am keeping here for reflection reason
 
+    """
+    def on_active(self, inst, value):
+        print("in on active meth")
+        if value:
+            self.master.downloader = self.checkbox_site
+            #self.check_btn.active = True
+            self.check_btn.active = True
+            toast(text=f"Manga will be searched on the site: {self.master.downloader}")
+    """
+        
 
 class RightContentCls(RightContent):
     def __init__(self, checkbox_site, **kwargs):
         super().__init__(**kwargs)
         self.master = MDApp.get_running_app()
-        #self.input_bar = MDApp.get_running_app().manga_search_page.input_bar
         self.check_btn = MangaCheckBox()
         self.check_btn.allow_no_selection = False
         self.checkbox_site = checkbox_site
         self.check_btn.checkbox_site = checkbox_site
-        
+    
         # This if statement needs to be here, so a toast wont appear when the app is opened
+        # It is ensures that the default site is pre-checked
         if self.master.downloader == checkbox_site:
             self.check_btn.active = True
             self.master.downloader = self.checkbox_site
@@ -73,133 +87,72 @@ class RightContentCls(RightContent):
         if value:
             self.master.downloader = self.checkbox_site
             toast(text=f"Manga will be searched on the site: {self.master.downloader}")
-            #self.input_bar.focus = True
-       
 
-class MangaSearchPage(RelativeLayout):
-    # downloader = None  # MDApp.get_running_app().default_downloader
-
+class MangaInputPage(MDRelativeLayout):
     def __init__(self, master, **kwargs):
         super().__init__(**kwargs)
         self.master = master
         self.input_bar = self.ids.SearchFieldID
         self.input_bar.focus = True
-
-        # Downloader related
-        self.query = self.input_bar.text
+        self.query = self.input_bar.text.strip()
         self.downloader_sites = ["manganelo", "kissmanga", "rawdevart", "senmanga"]
 
         # Side menu
-        icons = iter(["./Manga_Site_Logos/manga_nelo_icon.png","./Manga_Site_Logos/kissmanga_logo.png", "./Manga_Site_Logos/rawdevart_logo.png", "./Manga_Site_Logos/sen_manga_logo.png"])
+        icons = iter([resource_path("./DATA/manga_nelo_icon.png"),resource_path("./DATA/kissmanga_logo.png"), resource_path("./DATA/rawdevart_logo.png"), resource_path("./DATA/sen_manga_logo.png")])
         menu_items = [{"height": "70dp", "right_content_cls": RightContentCls(site), "icon": next(icons), "text": site} for site in self.downloader_sites]
         self.btn = MDRaisedButton(text="Manga sites", pos_hint={"center_x": .85, "center_y": .5}, on_release=lambda x: self.menu.open())
-        self.menu = MDDropdownMenu(caller=self.btn, items=menu_items, width_mult=4, on_release=self.menu_callback)
+        self.menu = MDDropdownMenu(caller=self.btn, items=menu_items, width_mult=4)
+        self.menu.bind(on_release=self.menu_callback)
         self.add_widget(self.btn)
 
     # Had to install dev version for callback to work
     def menu_callback(self, instance_menu, instance_menu_item):
-        for i in instance_menu_item.children:
-            for j in i.children:
-                for k in j.children:
-                    #print(k, type(k))
-                    if isinstance(k, MangaCheckBox):
-                        if not k.active:
-                            k.active = True
-                            self.master.downloader = k.checkbox_site
-                        else:
-                            k.active = False
-
+        for child in instance_menu_item.walk_reverse(loopback=True):
+            if isinstance(child, MangaCheckBox) and child.checkbox_site == instance_menu_item.text: 
+                if not child.active:
+                    child.active = True
+                    #self.master.downloader = child.checkbox_site
+        
     # This method is called within the kivy_strings.py file, on the event: on_text_validate
     def get_manga_query_data(self):
-        self.input_bar.text = self.input_bar.text.strip()
-        jp_to_en_text = convert_from_japanese_text(self.input_bar.text)
+        jp_to_en_text = convert_from_japanese_text(self.input_bar.text.strip())
         
-        # Manga Nelo only accepts english input:
-        if self.master.downloader == "manganelo":
-            os.chdir(self.master.english_manga_dir)
-            self.manganelo = MangaNelo(jp_to_en_text)
-            self.absract_get_query_data(self.manganelo)
-
-        # Raw Dev Art accepts Japanese and English input
-        elif self.master.downloader == "rawdevart":
-            os.chdir(self.master.japanese_manga_dir)
-            self.raw_dev_art = RawDevArt(jp_to_en_text)
-            self.absract_get_query_data(self.raw_dev_art)
-
-        # KissManga accepts Japanese and English input
-        elif self.master.downloader == "kissmanga":
-            os.chdir(self.master.english_manga_dir)
-            self.kiss_manga = KissManga(jp_to_en_text)
-            self.absract_get_query_data(self.kiss_manga)
+        downloader_site_data = {
+            "manganelo":[self.master.english_manga_dir, MangaNelo(jp_to_en_text)],
+            "rawdevart":[self.master.japanese_manga_dir, RawDevArt(jp_to_en_text)],
+            "kissmanga":[self.master.english_manga_dir, KissManga(jp_to_en_text)],
+            "senmanga":[self.master.japanese_manga_dir, SenManga(jp_to_en_text)]
+        }
+        language_dir, downloader_site = downloader_site_data.get(self.master.downloader)
+        os.chdir(language_dir)
+        if downloader_site.hasErrorOccured == False:
+            self.master.manga_data = downloader_site.manga_data
+            kill_screen("Manga Showcase", lambda *args: self.master.create_manga_display())
             
-        # Sen Manga accepts Japanese and English input
-        elif self.master.downloader == "senmanga":
-            os.chdir(self.master.japanese_manga_dir)
-            self.sen_manga = SenManga(jp_to_en_text)
-            self.absract_get_query_data(self.sen_manga)
-        else:
-            print(f"Error: No manga site called {self.master.downloader}")
-            toast(f"Error: No manga site called {self.master.downloader}")
-
-    def absract_get_query_data(self, site_obj):
-        if site_obj.hasErrorOccured == False:
-            self.master.manga_data = site_obj.manga_data
-            if not self.master.screen_manager.has_screen("Manga Showcase"):
-                self.master.create_manga_display()
-
-            # This bit acts as refresh for the manga cover display
-            else:
-                self.master.screen_manager.clear_widgets(screens=[self.master.screen_manager.get_screen("Manga Showcase")])
-                self.master.create_manga_display()
-
-            self.master.screen_manager.current = "Manga Showcase"
-        else:
-            toast(site_obj.popup_msg)
-            #print(site_obj.popup_msg)
+        else: toast(downloader_site.popup_msg)
         self.input_bar.text = ""
-        
-# TODO:Have a file system with covers of the manga; user shouldnt be able to delete manga covers
-# TODO: create JSON to store cover image and links. Should it be one file for all manga or one in each manga folder
-# RelativeLayout
 
 class MangaReadingPage(MDRelativeLayout):
     def __init__(self, master, **kwargs):
         super().__init__(**kwargs)
         self.master = master
-
         self.btn_text = ["Japanese (raw) Manga", "       English Manga          ", "      File Explorer      "]
 
         self.japanese_manga_btn = MDRectangleFlatButton(text=self.btn_text[0],pos_hint={"center_x":.5, "center_y":.6}, on_release=self.go_to_read_downloaded_manga)
         self.english_manga_btn = MDRectangleFlatButton(text=self.btn_text[1],pos_hint={"center_x":.5, "center_y":.4}, on_release=self.go_to_read_downloaded_manga)
-        self.file_explorer_btn = MDRectangleFlatIconButton(icon="folder",text=self.btn_text[2], pos_hint={"center_x":.5, "center_y":.2}, on_release = lambda x: os.startfile(self.master.manga_root_dir))
-        self.add_widget(self.japanese_manga_btn)
-        self.add_widget(self.english_manga_btn)
-        self.add_widget(self.file_explorer_btn)
+        #self.file_explorer_btn = MDRectangleFlatIconButton(icon="folder",text=self.btn_text[2], pos_hint={"center_x":.5, "center_y":.2}, on_release = lambda x: os.startfile(self.master.manga_root_dir))
+        
+        for btn in [self.japanese_manga_btn, self.english_manga_btn]:
+            self.add_widget(btn)
 
     def go_to_read_downloaded_manga(self, inst):
-        screen_name = "Downloaded Manga Showcase"
-        # Japanese
-        if inst.text == self.btn_text[0]:
-            if not self.master.screen_manager.has_screen(screen_name):
-                self.master.create_manga_read_display(language="Japanese")
-            # This bit acts as refresh for the manga cover display
-            else:
-                self.master.screen_manager.clear_widgets(screens=[self.master.screen_manager.get_screen(screen_name)])
-                self.master.create_manga_read_display(language="Japanese")
-        # English
-        elif inst.text == self.btn_text[1]:
-            if not self.master.screen_manager.has_screen(screen_name):
-                self.master.create_manga_read_display(language="English")
-            # This bit acts as refresh for the manga cover display
-            else:
-                self.master.screen_manager.clear_widgets(screens=[self.master.screen_manager.get_screen(screen_name)])
-                self.master.create_manga_read_display(language="English")
-        self.master.screen_manager.current = screen_name
-        
-
+        language = "Japanese" if inst.text == self.btn_text[0] else "English"
+        kill_screen("Downloaded Manga Showcase", lambda *args: self.master.create_manga_read_display(language=language))
+            
 class MangaCoverTile(SmartTileWithLabel):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self.master = MDApp.get_running_app()
         self.size_hint_y = None
         self.height = "240dp"
         self.font_style = "H6"
@@ -214,7 +167,9 @@ class DownloadedMangaDisplay(ScrollView):
         self.effect_cls = "ScrollEffect"
         self.scroll_type = ["bars"]
         self.bar_width = "10dp"
+        self.scroll_wheel_distance = "20sp"
         self.pos_hint = {"top":.9}
+        self.do_scroll_y = True
 
         self.language_folder = self.master.japanese_manga_dir if language == "Japanese" else self.master.english_manga_dir
 
@@ -222,69 +177,18 @@ class DownloadedMangaDisplay(ScrollView):
         self.manga_cover_imgs = [str(img_path) for img_path in Path(self.language_folder).glob("*/*.jpg")]
         self.manga_tile_data = list(zip(self.manga_folders, self.manga_cover_imgs))
 
-        # padding: [padding_left, padding_top, padding_right, padding_bottom]
-        self.grid = MDGridLayout(cols=5,adaptive_height=True,padding=("30dp", "50dp", "30dp", "100dp"), spacing="20dp") #padding=("30dp", "5dp")
+        # This grid acts as a container for the number of manga found and the table with the clickable tiles
+        self.outer_gird = MDGridLayout(rows=2, adaptive_height=True, padding=("0dp", "20dp", "0dp", "20dp"), pos_hint={"top":.8})
+        self.outer_gird.add_widget(MDLabel(text=f"{len(self.manga_folders)} manga were found", halign="center", pos_hint = {"center_x":.5,"y":.9}))
 
-        for i in range(5):
-            self.manga_num_label = MDLabel(pos_hint = {"center_x":.5,"center_y":1})
-            if i == 3:
-                self.manga_num_label.text = f"{len(self.manga_folders)} manga were found"
-            self.grid.add_widget(self.manga_num_label)
-
+        self.grid = MDStackLayout(adaptive_height=True, orientation="lr-tb", spacing=("20dp","20dp"), padding=("5dp", "30dp", "5dp", "30dp"))
+        
         for i in self.manga_tile_data:
             title, manga_path = i[0].split("\\")[-1], i[0]
-            self.btn = MangaCoverTile(source=i[1], text=title, on_release=partial(self.go_to_reader_chapter_selection, title, manga_path))
+            #reload_fun = partial(self.go_to_reader_chapter_selection, title, manga_path) #OG
+            reload_func = lambda title=title, manga_path=manga_path:self.master.create_manga_reader_chapter_selection(title, manga_path)
+            self.btn = MangaCoverTile(source=i[1], text=title, size_hint=(.25,.25), on_release=partial(kill_screen,"Manga Reader Chapter Selection", reload_func))
             self.grid.add_widget(self.btn)
-        self.add_widget(self.grid)
-
-    def go_to_reader_chapter_selection(self, title, manga_path, inst):
-        #print("inst: ", inst, "title: ", title, "manga path", manga_path)
-        # This bit acts as refresh for the manga cover display
-        screen_name = "Manga Reader Chapter Selection"
-
-        if not self.master.screen_manager.has_screen(screen_name):
-            self.master.create_manga_reader_chapter_selection(title, manga_path)
-        else:
-            self.master.screen_manager.clear_widgets(screens=[self.master.screen_manager.get_screen(screen_name)])
-            self.master.create_manga_reader_chapter_selection(title, manga_path)
-        self.master.screen_manager.current = screen_name
-
-
-# RelativeLayout
-class LandingPage(RelativeLayout):
-    def __init__(self, master, **kwargs):
-        super().__init__(**kwargs)
-        self.master = master
-        # DO NOT DELETE THE SPACES IN "Read Manga"
-        self.btn_texts = ["Download Manga", "Read Manga          "]
-
-        self.download_btn = MDRectangleFlatIconButton(text=self.btn_texts[0], icon="download-box",  pos_hint={"center_x": .5, "center_y": .4}, user_font_size="64sp", on_release=self.go_to_screen)
-        self.read_btn = MDRectangleFlatIconButton(text=self.btn_texts[1], icon="book-open-page-variant", pos_hint={"center_x": .5, "center_y": .6}, user_font_size="64sp", on_release=self.go_to_screen)
-        self.add_widget(self.read_btn)
-        self.add_widget(self.download_btn)
-
-    def go_to_screen(self, inst):
         
-        #if not self.master.screen_manager.has_screen("Manga Reader"):
-        screen_names = ["Manga Input Page", "Reading Page"]
-        if inst.text == "Download Manga":
-            if not self.master.screen_manager.has_screen(screen_names[0]):
-                self.master.create_manga_search_page()
-            else:
-                self.master.screen_manager.clear_widgets(screens=[self.master.screen_manager.get_screen(screen_names[0])])
-                self.master.create_manga_search_page()
-                self.master.manga_search_page.ids["SearchFieldID"].focus = True if inst.text == "Download Manga" else False
-            self.master.screen_manager.current = screen_names[0]
-        else:
-            if not self.master.screen_manager.has_screen(screen_names[1]):
-                self.master.create_manga_reading_page()
-            else:
-                self.master.screen_manager.clear_widgets(screens=[self.master.screen_manager.get_screen(screen_names[1])])
-                self.master.create_manga_reading_page()
-            self.master.screen_manager.current = screen_names[1]
-
-        #self.master.screen_manager.current = 'Manga Input Page' if inst.text == "Download Manga" else 'Reading Page'
-        #self.master.screen_manager.current = screen_name
-        #self.master.manga_search_page.ids["SearchFieldID"].focus = True if inst.text == "Download Manga" else False
-        print(self.master.screen_manager.screen_names)        
-
+        self.outer_gird.add_widget(self.grid)
+        self.add_widget(self.outer_gird)

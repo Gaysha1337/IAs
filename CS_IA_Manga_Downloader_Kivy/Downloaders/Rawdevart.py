@@ -25,7 +25,7 @@ class RawDevArt:
             self.request_error_code = request_obj.status_code
             soup = BeautifulSoup(request_obj.content,"html.parser")
             manga_divs = soup.select("div.row.mb-3 > div.col-6.col-md-4.col-lg-3.col-xl-2.px-1.mb-2.lister-layout")
-            if manga_divs == None:
+            if manga_divs == None or manga_divs == []:
                 self.hasErrorOccured = True
                 self.popup_msg = f"No manga called {query} was found while searching Raw Dev Art"
                 manga_divs, self.manga_data = [], {}

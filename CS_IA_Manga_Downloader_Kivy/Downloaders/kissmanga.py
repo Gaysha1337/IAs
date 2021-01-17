@@ -29,7 +29,7 @@ class KissManga:
             self.request_error_code = request_obj.status_code
             soup = BeautifulSoup(request_obj.content,features="lxml")
             manga_divs = soup.select(".item_movies_link")
-            if manga_divs == None:
+            if manga_divs == None or manga_divs == []:
                 self.hasErrorOccured = True
                 self.popup_msg = f"No manga called {query} was found while searching Kiss Manga"
                 manga_divs, self.manga_data = [], {}
