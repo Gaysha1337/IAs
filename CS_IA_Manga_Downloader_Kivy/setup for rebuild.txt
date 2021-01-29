@@ -32,7 +32,8 @@ RecycleGridLayout:
 ```
 Make sure ``orientation: "vertical"`` is commented out
 
+6.
 
-5. Kana conversion library:
-    - in cmd type "set PYTHONUTF8=1"
-    - then: pip install romkan
+kivy scroll issue with windows track pad fix
+
+https://github.com/kivy/kivy/issues/6646#issuecomment-748397234

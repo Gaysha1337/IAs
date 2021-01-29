@@ -1,9 +1,9 @@
+from kivymd.app import MDApp
 from kivy.clock import Clock, mainthread
 
-import requests, os, re
+import requests, os, re, concurrent.futures
 from tqdm import tqdm
 from bs4 import BeautifulSoup
-import concurrent.futures
 
 from utils import download_cover_img
     
@@ -11,19 +11,19 @@ from utils import download_cover_img
 # This downloader is for English Manga
 class MangaNelo:
     headers = {
-            "referer": "https://chap.manganelo.com/",
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.75 Safari/537.36",
-        }
+        "referer": "https://chap.manganelo.com/",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.75 Safari/537.36",
+    }
     def __init__(self,query=None):
-        self.query_url = "https://m.manganelo.com/search/story/{}".format(query.strip().replace(" ","_"))
-        self.request_error_code = None
+        self.query_url = f"https://m.manganelo.com/search/story/{query.strip().replace(' ','_')}"
+        #self.request_error_code = None
         self.popup_msg = None
         self.hasErrorOccured = False
         
         try: 
             request_obj = requests.get(self.query_url)
-            self.request_error_code = request_obj.status_code
-            soup = BeautifulSoup(request_obj.content,"html.parser")
+            #self.request_error_code = request_obj.status_code
+            soup = BeautifulSoup(request_obj.content,features="lxml")
             query_search_results = soup.find("div",attrs={"class":"panel-search-story"})
             
             # Checks to see if the user's manga input was found
@@ -65,7 +65,6 @@ class MangaNelo:
             soup_ = BeautifulSoup(r_.content, features="lxml")
             current_chapter_dir = os.path.join(root.english_manga_dir,title,chapter)
             
-
             # If no chapter directory has been found make one and change to it
             if not os.path.isdir(current_chapter_dir): os.mkdir(current_chapter_dir)
             os.chdir(current_chapter_dir)
@@ -83,7 +82,7 @@ class MangaNelo:
             # Update the progress bar after one chapter is downloaded 
             progress_bar.update(1)
             Clock.schedule_once(lambda *args: MangaNelo.trigger_call(tile, 1), -1)
-
+        # After Downloading all chapters, close and reset the progress bar
         progress_bar.close()
         Clock.schedule_once(lambda *args: tile.reset_progressbar(), 1) 
         
@@ -105,37 +104,3 @@ class MangaNelo:
     @staticmethod
     def trigger_call(tile,val):
         tile.progressbar.value+= val
-
-
-if __name__ == "__main__":    
-    #x = MangaNelo("Dark age")
-    #print(x.manga_choices)
-
-    """
-    url = "https://chap.manganelo.com/manga-hl88905"
-    r = requests.get(url)
-    soup = BeautifulSoup(r.content, features="lxml")
-    chapter_links = [{"imgs-link":link.get("href"), "chapter":link.text.strip()} for link in soup.select("a.chapter-name.text-nowrap")][::-1]
-    #print(chapter_links)
-    """
-    headers = {
-        "referer": "https://chap.manganelo.com/",
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.75 Safari/537.36",
-    }
-    chapter_17 = "https://chap.manganelo.com/manga-hl88905/chapter-17"
-    r = requests.get(chapter_17)
-    soup_ = BeautifulSoup(r.content, features="lxml")
-    imgs = soup_.select("div.container-chapter-reader img")
-
-    
-    for img in imgs:
-        with requests.Session() as s:
-            response = s.get(img.get("src"), headers=headers)
-            filename = img.get("title") + img.get("src").split("/")[-1]
-            filename = re.sub(r'[\\/*?:"<>|]',"",filename) # Sanitize filename for creation
-            print(filename)
-
-            with open(filename, "wb") as f:
-                f.write(response.content)
-        break
-    

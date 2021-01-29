@@ -17,6 +17,7 @@ from settings import AppSettings
 # Widgets
 from kivymd.toast  import toast
 from kivymd.uix.dialog import MDDialog
+from kivymd.uix.textfield import MDTextField
 
 # Screens and Screen-related
 from kivy.uix.screenmanager import ScreenManager
@@ -26,7 +27,7 @@ from MangaShowcase import MangaCoverContainer
 from MangaReader import MangaReaderChapterSelection, MangaReaderCarousel # This will be a carousel for swiping pages
 
 # Utils
-from utils import create_language_dirs, create_root_dir, move_manga_root, resource_path, show_confirmation_dialog, ConfirmationDialog
+from utils import create_language_dirs, create_root_dir, move_manga_root, resource_path, show_confirmation_dialog, create_screen
 
 # Setting a default font
 from kivy.core.text import LabelBase, DEFAULT_FONT
@@ -36,16 +37,17 @@ LabelBase.register(DEFAULT_FONT, resource_path('DATA/NotoSansCJKjp-Regular.otf')
 # The input bar needs to be written in KV else the hint text wont showup
 Builder.load_string(
 '''
+#:import pykakasi pykakasi
 <MangaInputPage>
     MDTextField:
         id: SearchFieldID
         mode: "rectangle"
+        max_text_length: 30
         hint_text: "Type in a manga"
         size_hint:(0.5,0.1)
+        focus: True
         pos_hint:{'center_x': 0.5, 'center_y': 0.5}
         on_text_validate: root.get_manga_query_data()
-        text_validate_unfocus: False
-        #focused: True
 '''
 )
 
@@ -85,7 +87,7 @@ class MangaDownloader(MDApp):
      
     def build_settings(self, settings):
         settings.add_json_panel('Manga Downloader Settings', self.config, data=AppSettings.json_settings)
-        
+
     # Method that builds all the GUI elements    
     def build(self):
         Window.bind(on_request_close=self.on_request_close)
@@ -110,12 +112,6 @@ class MangaDownloader(MDApp):
         #self.reading_screens = ["Reading Page", "Manga Reader Chapter Selection", "Manga Reader Carousel"]
         #self.downloading_screens = ["Manga Input Page", "Manga Showcase", "Downloaded Manga Showcase"]
 
-        """self.download_screens = {
-            "Manga Input Page":MangaInputPage(self), 
-            "Manga Showcase": MangaCoverContainer(self),
-            "Downloaded Manga Showcase":""
-        }"""
-        
         self.landing_page = LandingPage(self)
         screen = MangaScreen(name="Landing Page")
         screen.add_widget(self.landing_page)
@@ -160,52 +156,37 @@ class MangaDownloader(MDApp):
     # Creates the page where the user can input a manga to be downloaded
     def create_manga_search_page(self):
         self.manga_search_page = MangaInputPage(self)
-        screen = MangaScreen(name="Manga Input Page", prev_screen="Landing Page")
-        screen.add_widget(self.manga_search_page)
-        self.screen_manager.add_widget(screen)
+        create_screen(name="Manga Input Page", prev_screen="Landing Page", content=self.manga_search_page)
     
     # Creates the manga display grid when the user has input a name
     def create_manga_display(self):
         self.manga_display = MangaCoverContainer(self)
-        screen = MangaScreen(name="Manga Showcase", prev_screen="Manga Input Page")
-        screen.add_widget(self.manga_display)
-        self.screen_manager.add_widget(screen)
+        create_screen(name="Manga Showcase", prev_screen="Manga Input Page", content=self.manga_display)
 
     """ Reading Related Screens """
 
     # Creates the page where the user can choose to read manga in English or Japanese
     def create_manga_reading_page(self):
         self.manga_reader_page = MangaReadingPage(self)
-        screen = MangaScreen(name="Reading Page", prev_screen="Landing Page")
-        screen.add_widget(self.manga_reader_page)
-        self.screen_manager.add_widget(screen)
+        create_screen(name="Reading Page", prev_screen="Landing Page", content=self.manga_reader_page)
 
     # Creates the manga display for all downloaded manga found in a specific language
     def create_manga_read_display(self, language):
-        #self.manga_display = RV(self)
         self.download_manga_display = DownloadedMangaDisplay(self, language)
-        screen = MangaScreen(name="Downloaded Manga Showcase", prev_screen="Reading Page")
-        screen.add_widget(self.download_manga_display)
-        self.screen_manager.add_widget(screen)
+        create_screen(name="Downloaded Manga Showcase", prev_screen="Reading Page",content=self.download_manga_display)
 
     # Creates a display with buttons of the downloaded chapters 
     def create_manga_reader_chapter_selection(self, title, manga_path):
         self.chapter_selector = MangaReaderChapterSelection(self, title, manga_path)
-        screen = MangaScreen(name="Manga Reader Chapter Selection", prev_screen="Downloaded Manga Showcase")
-        screen.add_widget(self.chapter_selector)
-        self.screen_manager.add_widget(screen)
+        create_screen(name="Manga Reader Chapter Selection", prev_screen="Downloaded Manga Showcase", content=self.chapter_selector)
 
     # Creates the swiping carousel for reading a downloaded manga
     def create_manga_reader(self,manga_title,chapter_name,chapter_path):
         self.manga_reader = MangaReaderCarousel(self, manga_title,chapter_name, chapter_path)
-        screen = MangaScreen(name="Manga Reader Carousel", prev_screen="Manga Reader Chapter Selection")
-        screen.add_widget(self.manga_reader)
-        self.screen_manager.add_widget(screen)
+        create_screen(name="Manga Reader Carousel", prev_screen="Manga Reader Chapter Selection", content=self.manga_reader)
 
     # This method can handle any changes made to the settings, it also changes them when they are changed
     def on_config_change(self, config, section, key, value):
-        print(config, section, key, value, "config change event fired")
-
         """
         This func exists because if the client changes the download path while downloading a manga
         then not all the chapters will be downloaded to the new path
@@ -214,17 +195,23 @@ class MangaDownloader(MDApp):
             root_src, new_dst = resource_path(self.download_path), resource_path(value)
             try:
                 # Recursive function to move the english and Japanese manga containing folders to the new destination
-                move_manga_root(root_src,new_dst)
-                print(f"Download Path was successfully moved to {new_dst}")
+                move_manga_root(root_src, new_dst)
                 self.manga_root_dir = self.download_path = resource_path(self.config.get("Settings", "download_path"))
                 toast(f"Manga Download Path has been changed to {self.manga_root_dir}")
             
-            except PermissionError: toast("Permission Error occurred; You maybe don't have access")
+            except PermissionError: 
+                toast("Permission Error occurred; You maybe not have access")
             except:
                 if root_src != new_dst: 
                     toast("Unknown Error: If you have moved any folders/files yourself, they will appear in the new path")
 
-        # A callback function for a confirmation dialog
+        # Moves the root/download folder to the new path
+        if key == "download_path" and os.path.isdir(resource_path(os.path.join(value))):
+            if self.currently_downloading:
+                toast("Warning: The download path has been changed while a manga is being downloaded.\nAll new chapters will be downloaded to the new path")
+            change_download_path()
+
+        # A callback function for a confirmation dialog to confirm reseting all setting to their default values
         def reset_settings_config(inst):
             if isinstance(self.dialog, MDDialog):
                 self.dialog.dismiss(force=True)
@@ -239,26 +226,17 @@ class MangaDownloader(MDApp):
 
         # This section will reset all settings to their default values
         if key == "configchangebuttons":
-            self.dialog = None
-            if not self.dialog:
-                self.dialog = ConfirmationDialog(
-                    title= "Reset to Factory Settings Confirmation: ",
-                    text= "Warning: This will remove all current settings!\nAny Downloaded Manga will be moved to the default download folder!",
-                    proceed_button_callback = reset_settings_config)
-            self.dialog.open()
+            show_confirmation_dialog(
+                title= "Reset to Factory Settings Confirmation: ",
+                text= "Warning: This will remove all current settings!\nAny Downloaded Manga will be moved to the default download folder!",
+                proceed_callback = reset_settings_config
+            )
             
-        # Moves the root/download folder to the new path
-        if key == "download_path" and os.path.isdir(resource_path(os.path.join(value))):
-            if self.currently_downloading:
-                toast("Warning: The download path has been changed while a manga is being downloaded. All new chapters will be downloaded to the new path")
-            change_download_path()
-        
         self.theme_cls.theme_style = self.config.get("Settings", "theme_mode")
         self.theme_cls.primary_palette = self.config.get("Settings", "color_scheme")
         self.downloader = self.config.get("Settings", "default_downloader")
-
-        if key == "manga_swiping_direction": self.manga_swiping_direction = self.config.get("Settings", "manga_swiping_direction")
-        if key == "manga_reading_direction": self.manga_reading_direction = self.config.get("Settings", "manga_reading_direction")
+        self.manga_swiping_direction = self.config.get("Settings", "manga_swiping_direction")
+        self.manga_reading_direction = self.config.get("Settings", "manga_reading_direction")
 
     
 if __name__ == "__main__":
@@ -278,4 +256,6 @@ Bibliograpgy:
 - Fix for EXE app crashing when attempting to change download path
  https://stackoverflow.com/questions/57399081/pyinstaller-having-difficulty-building-filechooserlistview-via-kivy
 
+- Fix for EXE crash when Japanese input detected (I didnt add all of the files from pykakasi/data, but rather the whole folder)
+  https://qiita.com/kanedaq/items/0533336915a375dd72c1
 """

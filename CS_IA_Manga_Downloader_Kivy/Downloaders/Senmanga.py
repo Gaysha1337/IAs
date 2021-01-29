@@ -1,31 +1,31 @@
 from kivymd.app import MDApp
 from kivy.clock import Clock
 
-import requests, os, re
+import requests, os, re, concurrent.futures
 from bs4 import BeautifulSoup
 from tqdm import tqdm
-from functools import partial
-import concurrent.futures
 
-from utils import  download_cover_img
+if __name__ != "__main__":
+
+    from utils import  download_cover_img
     
 
 # Japanese Manga Downloader
 class SenManga:
-    def __init__(self, query=None):
 
+    def __init__(self, query=None):
+        self.master = MDApp.get_running_app()
         # https://rawdevart.com/search/?page=2&title=the
-        self.query_url = "https://raw.senmanga.com/search?s={}".format(query.strip().replace(" ","+"))
+        self.query_url = f"https://raw.senmanga.com/search?s={query.strip().replace(' ','+')}"
         self.headers = {"user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.75 Safari/537.36"}
-        self.request_error_code = None
+        #self.request_error_code = None
         self.popup_msg = None
         self.hasErrorOccured = False
-        self.master = MDApp.get_running_app()
+        
 
         try: 
-            #headers = {"user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.75 Safari/537.36"}
             request_obj = requests.get(self.query_url, headers=self.headers)
-            self.request_error_code = request_obj.status_code
+            #self.request_error_code = request_obj.status_code
             soup = BeautifulSoup(request_obj.content,features="lxml")
             manga_divs = soup.select(".series")
             if manga_divs == None or manga_divs == []:
@@ -59,7 +59,6 @@ class SenManga:
         chapter_divs = soup.select(".list")[1]
 
         chapter_links = [{"link":a.get("href"),"chapter":a.text.strip()} for a in chapter_divs.select(".list .group .element .title a")][::-1]
-        #chapter_links = [{"img-link":"https://rawdevart.com" + elem.get("href"), "chapter":elem.get("title")} for elem in soup.select("div.list-group-item a", text=True)][::-1]
 
         # A progress bar that updates once a chapter is finished downloading
         progress_bar = tqdm(chapter_links, total=len(chapter_links))
@@ -93,7 +92,7 @@ class SenManga:
             # Update the progress bar after one chapter is downloaded 
             progress_bar.update(1)
             Clock.schedule_once(lambda args: SenManga.trigger_call(tile, 1), -1)
-
+        # After Downloading all chapters, close and reset the progress bar
         progress_bar.close()
         Clock.schedule_once(lambda *args: tile.reset_progressbar(), 1)     
 
@@ -112,3 +111,7 @@ class SenManga:
     @staticmethod
     def trigger_call(tile,val):
         tile.progressbar.value+= val
+
+
+if __name__ == "__main__":
+    x = SenManga("kage")

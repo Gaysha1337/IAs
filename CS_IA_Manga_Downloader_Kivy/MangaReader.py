@@ -4,7 +4,11 @@ from glob import glob
 from natsort import os_sorted # Windows can't sort alphanumerically, this module can
 
 # Widgets
+from kivy.clock import Clock
+from kivy.properties import ObjectProperty
 from kivy.uix.carousel import Carousel
+from kivy.uix.scatter import Scatter, ScatterPlane
+from kivy.uix.scatterlayout import ScatterLayout
 from kivy.uix.image import Image
 from kivy.uix.scrollview import ScrollView
 from kivymd.uix.label import MDLabel
@@ -25,14 +29,12 @@ class MangaReaderChapterSelection(ScrollView):
         self.manga_path = manga_path
         self.manga_title = title
         self.effect_cls = "ScrollEffect"
-        self.scroll_type = ["bars"]
         self.bar_width = "10dp"
         self.pos_hint = {"top":.9}
         self.padding=("20dp", "0dp", "20dp", "0dp") # padding: [padding_left, padding_top, padding_right, padding_bottom]
         
         # Get all the chapter directories and sort them alphanumerically
         self.chapter_dirs = os_sorted([os.path.abspath(dir) for dir in glob(os.path.join(self.manga_path,"*/")) if os.path.isdir(dir)])
-        
         self.grid = MDStackLayout(adaptive_height=True,padding=("30dp", "50dp", "30dp", "0dp"), spacing="20dp", pos_hint={"center_x":.5})#, pos_hint={"right":.5}) #padding=("30dp", "5dp")
         
         # Loop to create buttons for each chapter of a manga
@@ -49,15 +51,24 @@ class MangaReaderChapterSelection(ScrollView):
             self.grid.add_widget(self.chapter_btn)
         self.add_widget(self.grid)
 
-    
-    def load_chapter_imgs(self, manga_title, name, path, *args):
-        screen_name = "Manga Reader Carousel"
-        if not self.master.screen_manager.has_screen(screen_name):
-            self.master.create_manga_reader(manga_title, name, path)
-        else:
-            self.master.screen_manager.clear_widgets(screens=[self.master.screen_manager.get_screen(screen_name)])
-            self.master.create_manga_reader(manga_title, name, path)
-        self.master.screen_manager.current = screen_name
+class ZoomableImage(Scatter):
+    def __init__(self, image_src, **kwargs):
+        super().__init__(**kwargs)
+        self.image_src = image_src
+        self.do_rotation=False 
+        self.do_translation=False
+        self.do_scale = True 
+        self.scale=5 
+        self.scale_min= 5 
+        self.scale_max= 8
+        self.size_hint=(None,None)
+        self.add_widget(Image(source=self.image_src, keep_ratio = True, allow_stretch=True))
+        
+        Clock.schedule_once(self.center_it)
+
+    def center_it(self, inst):
+        self.center = self.parent.center
+
 
 class MangaReaderCarousel(AnchorLayout):
     def __init__(self, master, manga_title,chapter_name,chapter_path,**kwargs):
@@ -76,11 +87,15 @@ class MangaReaderCarousel(AnchorLayout):
         self.carousel = Carousel(direction=self.reading_direction)
         
         for index, img in enumerate(self.chapter_imgs):
-            image = Image(source=str(img), allow_stretch=True, keep_ratio=True)
+            #image = Image(source=str(img), allow_stretch=True, keep_ratio=True)
+            
+            scatter = ZoomableImage(image_src=str(img))
+            
             self.inner_carousel_layout = MDRelativeLayout()
+            #self.inner_carousel_layout = ScatterLayout(size=image.size)
             self.inner_carousel_layout.add_widget(MDLabel(text=f"Page {index + 1}/{len(self.chapter_imgs)}", pos_hint={"top":.6}))
             
-            self.inner_carousel_layout.add_widget(image)
+            self.inner_carousel_layout.add_widget(scatter)
             self.carousel.add_widget(self.inner_carousel_layout)
      
             self.prev_btn = MDIconButton(icon="menu-left", user_font_size ="200sp", on_release = lambda *x:self.carousel.load_previous(), pos_hint={"center_x":.1, "center_y":.5}) # pos_hint={"left":.2, "y":.5},

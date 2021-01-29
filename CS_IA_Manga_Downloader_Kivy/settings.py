@@ -14,100 +14,55 @@ from kivymd.uix.dialog import MDDialog
 from kivy.uix.settings import Settings, SettingsWithSidebar ,SettingItem, SettingOptions, SettingSpacer, SettingPath
 
 from utils import resource_path
-class AppSettings:    
-    json_settings = json.dumps([
-        {'type': 'title', 'title': 'Color Scheme and Theme Settings'},
 
-        {'type': 'scrolloptions',
-        'title': 'Theme',
-        'desc': 'Dark theme or Light theme',
-        'section': 'Settings',
-        'key': 'theme_mode',
-        'options': ['Dark', 'Light']
-        },
-
-        {'type': 'scrolloptions',
-        'title': 'Color scheme',
-        'desc': 'This settings affects the color of: Text, borders... but not the theme(light or dark)',
-        'section': 'Settings',
-        'key': 'color_scheme',
-        'options': ['Red', 'Pink', 'Purple', 'DeepPurple', 'Indigo', 'Blue', 'LightBlue', 'Cyan', 'Teal', 'Green', 'LightGreen', 'Lime', 'Yellow', 'Amber', 'Orange', 'DeepOrange', 'Brown', 'Gray', 'BlueGray']
-        },
-
-        {'type': 'title','title': 'Download Settings'},
-
-        {'type': 'scrolloptions',
-        'title': 'Default Manga Site',
-        'desc': 'The default site that will be used to download manga',
-        'section': 'Settings',
-        'key': 'default_downloader',
-        'options': ["manganelo", "kissmanga", "rawdevart", "senmanga"]
-        },
-
-        {'type': 'better_settings_path', # 'type':'path'
-        'title': 'Download Folder Path',
-        'desc': "All downloaded manga will be found in this folder. It will have 2 sub folders for English and Japanese manga",
-        'section': 'Settings',
-        'key': 'download_path'
-        },
-
-        {'type': 'title','title': 'Manga Reader Settings'},
-
-        {'type': 'scrolloptions',
-        'title': 'Manga Reading Direction',
-        'desc': 'Turn on to scroll vertically while reading. Turn off to swipe horizontally for reading',
-        'section': 'Settings',
-        'key': 'manga_reading_direction',
-        'options' : ["Scroll vertically", "Swipe Horizontally"],
-        },
-
-        {'type': 'scrolloptions',
-        'title': 'Manga Reading Swipe Direction for page turning',
-        'desc': 'The Japanese way of reading manga is: Left to Right. The English way is: Right to Left.',
-        'section': 'Settings',
-        'key': 'manga_swiping_direction',
-        'options':["Left to Right (Japanese style)", "Right to Left (English style)"],
-        },
-
-        {'type':'title', 'title':'Misc.'},
+"""
+This Class acts as a container for the classes of the custom settings widgets I created 
+"""
+class AppSettings:  
+    with open(resource_path("settings.json"),"r+",encoding="utf-8") as f:
+        json_settings = json.dumps(json.load(f))
         
-        {"type": "buttons",
-        "title": "Reset Settings",
-        "desc": "Reset the settings to their default values",
-        "section": "Settings",
-        "key": "configchangebuttons",
-        "buttons":[{"title":"Reset Settings","id":"reset_settings_btn"}]
-        },
-    ])
-    
+    class ScrollableSettings(SettingsWithSidebar):
+        def __init__(self, *args, **kwargs):
+            super().__init__(**kwargs)
+            self.settings_types = [
+                ('scrolloptions',AppSettings.SettingScrollOptions), ('buttons', AppSettings.SettingButtons), 
+                ('better_settings_path', AppSettings.BetterSettingsPath)
+            ]
+            for type_ in self.settings_types:
+                self.register_type(*type_)
+
+    class BetterSettingsPath(SettingPath):
+        def __init__(self, **kwargs):
+            super().__init__(**kwargs)
+            self.show_hidden = True
+        
+        def _validate(self, instance):
+            self._dismiss()
+            value = self.textinput.selection
+            if not value:
+                return
+            self.value = resource_path(os.path.realpath(value[0]))
+
     class SettingScrollOptions(SettingOptions):
         def _create_popup(self, instance):
-            # global oORCA
-            # create the popup
-            content = GridLayout(cols=1, spacing='5dp')
-            scrollview = ScrollView(do_scroll_x=False)
+            content, scrollview = GridLayout(cols=1, spacing='5dp'), ScrollView(do_scroll_x=False)
             scrollcontent = GridLayout(cols=1,  spacing='5dp', size_hint=(None, None))
             scrollcontent.bind(minimum_height=scrollcontent.setter('height'))
             self.popup = popup = Popup(content=content, title=self.title, size_hint=(0.5, 0.9),  auto_dismiss=False)
-            # we need to open the popup first to get the metrics
-            popup.open()
-            # Add some space on top
-            #content.add_widget(Widget(size_hint_y=None, height=dp(2)))
-            content.add_widget(SettingSpacer())
-            # add all the options
-            uid = str(self.uid)
+            
+            popup.open() # popup is opened to get the metrics
+            content.add_widget(SettingSpacer()) # Add some space on top
+            
             for option in self.options:
                 state = 'down' if option == self.value else 'normal'
-                btn = ToggleButton(text=option, state=state, group=uid, size=(popup.width, dp(55)), size_hint=(None, None), on_release=self._set_option)
-                scrollcontent.add_widget(btn)
+                scrollcontent.add_widget(ToggleButton(text=option, state=state, group=str(self.uid), size=(popup.width, dp(55)), size_hint=(None, None), on_release=self._set_option))#btn)
 
-            # finally, add a cancel button to return on the previous panel
             scrollview.add_widget(scrollcontent)
-            content.add_widget(scrollview)
-            content.add_widget(SettingSpacer())
-            # btn = Button(text='Cancel', size=((oORCA.iAppWidth/2)-sp(25), dp(50)),size_hint=(None, None))
-            btn = Button(text='Cancel', size=(popup.width, dp(50)), size_hint=(0.9, None), on_release=popup.dismiss)
-            content.add_widget(btn)
+            cancel_btn = Button(text='Cancel', size=(popup.width, dp(50)), size_hint=(0.9, None), on_release=popup.dismiss)
+
+            for widget in [scrollview, SettingSpacer(), cancel_btn]:
+                content.add_widget(widget)
 
     class SettingButtons(SettingItem):
         def __init__(self, **kwargs):
@@ -122,33 +77,8 @@ class AppSettings:
                 self.add_widget(oButton)
         
         def set_value(self, section, key, value):
-            # set_value normally reads the configparser values and runs on an error
-            # to do nothing here
+            # set_value normally reads the configparser values and runs on an error (to do nothing here)
             return
         
         def on_button_press(self,instance):
             self.panel.settings.dispatch('on_config_change',self.panel.config, self.section, self.key, instance.ID)
-    
-    class BetterSettingsPath(SettingPath):
-        def _validate(self, instance):
-            print("validate called")
-            self._dismiss()
-            value = self.textinput.selection
-            if not value:
-                return
-            
-            self.value = resource_path(os.path.realpath(value[0]))
-
-    class ScrollableSettings(SettingsWithSidebar):
-        def __init__(self, *args, **kwargs):
-            super().__init__(**kwargs)
-            
-            self.content_panel = self.interface.children[0]
-            self.content_panel.bar_width = "10dp"
-            self.register_type('scrolloptions', AppSettings.SettingScrollOptions)
-            self.register_type('buttons', AppSettings.SettingButtons)
-            self.register_type('better_settings_path', AppSettings.BetterSettingsPath)
-
-if __name__ == "__main__":
-    #SettingsApp().run()
-    pass
