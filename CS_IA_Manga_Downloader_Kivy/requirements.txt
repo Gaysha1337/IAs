@@ -5,12 +5,16 @@ requests
 bs4
 tqdm
 pykakasi
+lxml
+natsort
+
+
 os
+sys
 pathlib
 re
 threading
-concurrent.futures # Built in
+concurrent.futures
 shutil
-lxml
 json
-natsort
+glob
