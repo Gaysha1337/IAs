@@ -7,13 +7,13 @@ title = Manga Downloader
 package.name = mangadownloader
 
 # (str) Package domain (needed for android/ios packaging)
-package.domain = org.test
+package.domain = mangadownloader.org
 
 # (str) Source code where the main.py live
 source.dir = .
 
 # (list) Source files to include (let empty to include all the files)
-source.include_exts = #py,png,jpg,kv,atlas,ini,ttf, otf
+#source.include_exts = py,png,jpg,kv,atlas,ini,ttf, otf
 
 # (list) List of inclusions using pattern matching
 #source.include_patterns = assets/*,images/*.png, DATA/*
@@ -38,7 +38,8 @@ version = 0.1
 # comma separated e.g. requirements = sqlite3,kivy
 # kivy==2.0.0rc4 = https://github.com/kivy/kivy/archive/master.zip
 # kivymd==0.104.2.dev0 = https://github.com/kivymd/KivyMD/archive/master.zip
-requirements = python3,https://github.com/kivy/kivy/archive/master.zip,https://github.com/kivymd/KivyMD/archive/master.zip,requests,bs4,tqdm,pykakasi,plyer,os,json,re,threading,pathlib,shutil,natsort,lxml,
+# os,json,re,threading,pathlib,shutil,
+requirements = python3==3.8.5,hostpython3==3.8.5,sqlite3,kivy==2.0.0rc4,https://github.com/kivymd/KivyMD/archive/master.zip,requests,bs4,tqdm,pykakasi,plyer,natsort,lxml,
 
 # (str) Custom source folders for requirements
 # Sets custom source for any requirements with recipes
@@ -67,10 +68,10 @@ orientation = portrait
 # author = © Copyright Info
 
 # change the major version of python used by the app
-osx.python_version = 3
+osx.python_version = 3.8.5
 
 # Kivy version to use
-osx.kivy_version = 1.9.1
+osx.kivy_version = 2.0.0rc4
 
 #
 # Android specific
@@ -87,7 +88,7 @@ fullscreen = 0
 #android.presplash_color = #FFFFFF
 
 # (list) Permissions
-android.permissions = INTERNET
+android.permissions = INTERNET, WRITE_EXTERNAL_STORAGE, READ_EXTERNAL_STORAGE
 
 # (int) Target Android API, should be as high as possible.
 #android.api = 27
