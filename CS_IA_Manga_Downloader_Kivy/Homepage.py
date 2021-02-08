@@ -2,6 +2,7 @@ import os, sys
 from functools import partial
 from pathlib import Path
 from kivy.clock import Clock
+from kivy.uix.button import Button
 from kivymd.app import MDApp
 from kivy.uix.scrollview import ScrollView
 from kivymd.uix.imagelist import SmartTileWithLabel

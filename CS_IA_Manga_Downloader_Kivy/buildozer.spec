@@ -38,9 +38,10 @@ version = 0.1
 # comma separated e.g. requirements = sqlite3,kivy
 # kivy==2.0.0rc4 = https://github.com/kivy/kivy/archive/master.zip
 # kivymd==0.104.2.dev0 = https://github.com/kivymd/KivyMD/archive/master.zip
+# kivymd (version that displays icons on android): git+https://github.com/HeaTTheatR/KivyMD.git
 # os,json,re,threading,pathlib,shutil,
 # bs4
-requirements = python3==3.8.5,hostpython3==3.8.5,sdl2_ttf==2.0.15,openssl,android,python-for-android,kivy==2.0.0rc4,git+https://github.com/kivymd/KivyMD.git@master,tqdm,pykakasi,klepto,dill,pox,plyer,natsort,lxml,bs4,beautifulsoup4,soupsieve,requests,urllib3,chardet,idna,certifi
+requirements = python3==3.8.5,hostpython3==3.8.5,sdl2_ttf==2.0.15,openssl,android,python-for-android,kivy==2.0.0rc4,git+https://github.com/HeaTTheatR/KivyMD.git,tqdm,pykakasi,klepto,dill,pox,plyer,natsort,lxml,bs4,beautifulsoup4,soupsieve,requests,urllib3,chardet,idna,certifi
 
 # (str) Custom source folders for requirements
 # Sets custom source for any requirements with recipes

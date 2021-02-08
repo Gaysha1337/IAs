@@ -24,7 +24,7 @@ from kivy.uix.screenmanager import ScreenManager
 from MangaScreen import MangaScreen
 from Homepage import MangaInputPage, LandingPage, MangaReadingPage, DownloadedMangaDisplay
 from MangaShowcase import MangaCoverContainer
-from MangaReader import MangaReaderChapterSelection, MangaReaderCarousel # This will be a carousel for swiping pages
+from MangaReader import MangaReaderChapterSelection, MangaReaderCarouselContainer # This will be a carousel for swiping pages
 
 # Utils
 from utils import create_language_dirs, create_root_dir, move_manga_root, resource_path, show_confirmation_dialog, create_screen
@@ -190,7 +190,7 @@ class MangaDownloader(MDApp):
 
     # Creates the swiping carousel for reading a downloaded manga
     def create_manga_reader(self,manga_title,chapter_name,chapter_path):
-        self.manga_reader = MangaReaderCarousel(self, manga_title,chapter_name, chapter_path)
+        self.manga_reader = MangaReaderCarouselContainer(self, manga_title,chapter_name, chapter_path)
         create_screen(name="Manga Reader Carousel", prev_screen="Manga Reader Chapter Selection", content=self.manga_reader)
 
     # This method can handle any changes made to the settings, it also changes them when they are changed

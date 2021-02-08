@@ -3,7 +3,7 @@ from kivy.core.window import Window
 from kivy.clock import Clock
 from kivymd.toast.kivytoast.kivytoast import toast
 
-from kivymd.uix.button import MDFlatButton
+from kivymd.uix.button import MDFlatButton, MDIconButton
 from kivy.uix.screenmanager import Screen, ScreenManager
 from kivymd.uix.toolbar import MDToolbar
 from kivymd.uix.dialog import MDDialog
@@ -26,8 +26,6 @@ class MangaScreen(Screen):
         self._keyboard.bind(on_key_down=self._on_keyboard_down)
         
     def on_pre_enter(self, *args, **kwargs):
-        #self.toolbar = ToolBar()
-        #self.add_widget(self.toolbar)
         self.add_widget(ToolBar())
 
 
@@ -52,11 +50,16 @@ class MangaScreen(Screen):
                 switch_to_screen(self.master.current_screen.prev_screen)
         
         # Keyboard shortcuts to go between the images of a chapter
-        if keycode[1] in ["right","down", "d", "s"] and self.name == "Manga Reader Carousel": 
-            self.master.manga_reader.carousel.load_next()
-        
-        if keycode[1] in ["left","up", "a", "w"] and self.name == "Manga Reader Carousel": 
-            self.master.manga_reader.carousel.load_previous()
+
+        if self.name == "Manga Reader Carousel":
+            
+            if keycode[1] in ["right","down", "d", "s"] and self.name == "Manga Reader Carousel": 
+                #self.master.manga_reader.carousel.load_next()
+                self.master.manga_reader.next_btn.trigger_action(0)
+            
+            if keycode[1] in ["left","up", "a", "w"] and self.name == "Manga Reader Carousel": 
+                #self.master.manga_reader.carousel.load_previous()
+                self.master.manga_reader.prev_btn.trigger_action(0)
             
         # Return True to accept the key. Otherwise, it will be used by the system.
         return True 
