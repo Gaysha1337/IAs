@@ -1,13 +1,13 @@
 [app]
 
 # (str) Title of your application
-title = MangaDownloader
+title = Manga Downloader
 
 # (str) Package name
 package.name = mangadownloader
 
 # (str) Package domain (needed for android/ios packaging)
-package.domain = org.test
+package.domain = mangadownloader.org
 
 # (str) Source code where the main.py live
 source.dir = .
@@ -22,7 +22,7 @@ source.dir = .
 #source.exclude_exts = spec
 
 # (list) List of directory to exclude (let empty to not exclude anything)
-#source.exclude_dirs = UIX, Feature_Testing,
+#source.exclude_dirs = tests, bin, UIX, Feature_Testing,
 
 # (list) List of exclusions using pattern matching
 #source.exclude_patterns = license,images/*/*.jpg
@@ -39,8 +39,7 @@ version = 0.1
 # kivy==2.0.0rc4 = https://github.com/kivy/kivy/archive/master.zip
 # kivymd==0.104.2.dev0 = https://github.com/kivymd/KivyMD/archive/master.zip
 # os,json,re,threading,pathlib,shutil,
-# bs4
-requirements = python3==3.8.5,hostpython3==3.8.5,sdl2_ttf==2.0.15,openssl,android,python-for-android,kivy==2.0.0rc4,git+https://github.com/kivymd/KivyMD.git@master,tqdm,pykakasi,klepto,dill,pox,plyer,natsort,lxml,bs4,beautifulsoup4,soupsieve,requests,urllib3,chardet,idna,certifi
+requirements = python3==3.8.5,hostpython3==3.8.5,sqlite3,kivy==2.0.0rc4,https://github.com/kivymd/KivyMD/archive/master.zip,requests,bs4,tqdm,pykakasi,plyer,natsort,lxml,
 
 # (str) Custom source folders for requirements
 # Sets custom source for any requirements with recipes
@@ -89,7 +88,6 @@ fullscreen = 0
 #android.presplash_color = #FFFFFF
 
 # (list) Permissions
-#, WRITE_EXTERNAL_STORAGE, READ_EXTERNAL_STORAGE
 android.permissions = INTERNET, WRITE_EXTERNAL_STORAGE, READ_EXTERNAL_STORAGE
 
 # (int) Target Android API, should be as high as possible.
@@ -128,7 +126,7 @@ android.permissions = INTERNET, WRITE_EXTERNAL_STORAGE, READ_EXTERNAL_STORAGE
 # agreements. This is intended for automation only. If set to False,
 # the default, you will be shown the license when first running
 # buildozer.
-android.accept_sdk_license = True
+# android.accept_sdk_license = False
 
 # (str) Android entry point, default is ok for Kivy-based app
 #android.entrypoint = org.renpy.android.PythonActivity
@@ -185,7 +183,7 @@ android.accept_sdk_license = True
 
 # (str) OUYA Console category. Should be one of GAME or APP
 # If you leave this blank, OUYA support will not be enabled
-#android.ouya.category = APP
+#android.ouya.category = GAME
 
 # (str) Filename of OUYA Console icon. It must be a 732x412 png image.
 #android.ouya.icon.filename = %(source.dir)s/data/ouya_icon.png
@@ -250,7 +248,7 @@ android.arch = armeabi-v7a
 #p4a.hook =
 
 # (str) Bootstrap to use for android builds
-p4a.bootstrap = sdl2
+# p4a.bootstrap = sdl2
 
 # (int) port number to specify an explicit --port= p4a argument (eg for bootstrap flask)
 #p4a.port =

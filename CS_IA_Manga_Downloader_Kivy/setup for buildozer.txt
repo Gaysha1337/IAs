@@ -5,3 +5,11 @@
 
 
 3. When deploying add the verbose flag (-v), full command: buildozer -v android debug deploy run
+
+4. Weird bug with httplib2:
+    - https://github.com/kivy/buildozer/issues/135
+
+5. Weird issue with bs4 (buildozer has no recipe):
+    - Replace bs4 with beautifulsoup4 in buildozer.spec requirements
+
+6. Make sure to accept the sdk license in the spec file

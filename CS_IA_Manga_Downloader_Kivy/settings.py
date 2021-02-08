@@ -11,7 +11,7 @@ from kivy.uix.popup import Popup
 from kivymd.uix.dialog import MDDialog
 
 # Used to create custom settings
-from kivy.uix.settings import Settings, SettingsWithSidebar ,SettingItem, SettingOptions, SettingSpacer, SettingPath
+from kivy.uix.settings import Settings, SettingsWithSidebar ,SettingItem, SettingOptions, SettingSpacer, SettingPath, SettingsWithTabbedPanel, SettingsWithSpinner
 
 from utils import resource_path
 
@@ -22,7 +22,7 @@ class AppSettings:
     with open(resource_path("settings.json"),"r+",encoding="utf-8") as f:
         json_settings = json.dumps(json.load(f))
         
-    class ScrollableSettings(SettingsWithSidebar):
+    class ScrollableSettings(SettingsWithSpinner):
         def __init__(self, *args, **kwargs):
             super().__init__(**kwargs)
             self.settings_types = [
