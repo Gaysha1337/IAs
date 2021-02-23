@@ -25,12 +25,11 @@ from Downloaders.Senmanga import SenManga
 # Utils
 from utils import convert_from_japanese_text, resource_path, kill_screen, show_confirmation_dialog
 
-# RelativeLayout
 class LandingPage(MDRelativeLayout):
     def __init__(self, master, **kwargs):
         super().__init__(**kwargs)
         self.master = master
-        # DO NOT DELETE THE SPACES IN "Read Manga"
+        
         self.btn_texts = ["Download Manga", "Read Manga          "]
 
         self.download_btn = MDRectangleFlatIconButton(text=self.btn_texts[0], icon="download-box",  pos_hint={"center_x": .5, "center_y": .4}, user_font_size="64sp", on_release=self.go_to_screen)
@@ -64,8 +63,7 @@ class RightContentCls(RightContent):
         self.master = MDApp.get_running_app()
         self.check_btn = MangaCheckBox()
         self.check_btn.allow_no_selection = False
-        self.checkbox_site = checkbox_site
-        self.check_btn.checkbox_site = checkbox_site
+        self.checkbox_site = self.check_btn.checkbox_site = checkbox_site
     
         # This if statement needs to be here, so a toast wont appear when the app is opened
         # It is ensures that the default site is pre-checked
@@ -79,7 +77,6 @@ class RightContentCls(RightContent):
     def checked(self, checkbox, value):
         if value:
             self.master.downloader = self.checkbox_site
-            self.check_btn.active = True
             toast(text=f"Manga will be searched on the site: {self.master.downloader}")
 
 class MangaInputPage(MDRelativeLayout):
@@ -90,7 +87,10 @@ class MangaInputPage(MDRelativeLayout):
         self.downloader_sites = ["manganelo", "kissmanga", "rawdevart", "senmanga"]
 
         # Side menu
-        icons = iter([resource_path("./DATA/manga_nelo_icon.png"),resource_path("./DATA/kissmanga_logo.png"), resource_path("./DATA/rawdevart_logo.png"), resource_path("./DATA/sen_manga_logo.png")])
+        icons = iter(
+            [resource_path("./DATA/manga_nelo_icon.png"),resource_path("./DATA/kissmanga_logo.png"), 
+            resource_path("./DATA/rawdevart_logo.png"), resource_path("./DATA/sen_manga_logo.png")]
+        )
         menu_items = [{"height": "70dp", "right_content_cls": RightContentCls(site), "icon": next(icons), "text": site} for site in self.downloader_sites]
         self.btn = MDRaisedButton(text="Manga sites", pos_hint={"center_x": .85, "center_y": .5}, on_release=lambda x: self.menu.open())
         self.menu = MDDropdownMenu(caller=self.btn, items=menu_items, width_mult=4)
@@ -105,23 +105,15 @@ class MangaInputPage(MDRelativeLayout):
                     child.active = True
                     self.master.downloader = child.checkbox_site
         
-    # This method is called within the kivy_strings.py file, on the event: on_text_validate
+    # This method is called from the KV code, on the event: on_text_validate
     def get_manga_query_data(self):
         jp_to_en_text = convert_from_japanese_text(self.input_bar.text.strip())
-        
-        if self.master.downloader == "manganelo":
-            downloader_site, language_dir = MangaNelo(jp_to_en_text), self.master.english_manga_dir
-        elif self.master.downloader == "rawdevart":
-            downloader_site, language_dir = RawDevArt(jp_to_en_text), self.master.japanese_manga_dir
-        elif self.master.downloader == "kissmanga":
-            downloader_site, language_dir = KissManga(jp_to_en_text), self.master.english_manga_dir
-        elif self.master.downloader == "senmanga":
-            downloader_site, language_dir = SenManga(jp_to_en_text), self.master.japanese_manga_dir
-        else: 
-            downloader_site, language_dir = None,None
+        downloader_sites = {"manganelo": MangaNelo, "rawdevart": RawDevArt,"kissmanga": KissManga,"senmanga": SenManga}
+
+        # Instantiates appropriate downloader site with the converted text
+        downloader_site = downloader_sites.get(self.master.downloader)(jp_to_en_text)
         
         if downloader_site is not None and downloader_site.hasErrorOccured == False:
-            os.chdir(resource_path(language_dir))
             self.master.manga_data = downloader_site.manga_data
             kill_screen("Manga Showcase", lambda *args: self.master.create_manga_display())
         else: 
@@ -164,8 +156,8 @@ class DownloadedMangaDisplay(ScrollView):
 
         self.language_folder = self.master.japanese_manga_dir if language == "Japanese" else self.master.english_manga_dir
 
-        self.manga_folders = [str(dir) for dir in Path(self.language_folder).glob("*/")]
-        self.manga_cover_imgs = [str(img_path) for img_path in Path(self.language_folder).glob("*/*.jpg")]
+        self.manga_folders = [resource_path(str(dir)) for dir in Path(self.language_folder).glob("*/")]
+        self.manga_cover_imgs = [resource_path(str(img_path)) for img_path in Path(self.language_folder).glob("*/*.jpg")]
         self.manga_tile_data = list(zip(self.manga_folders, self.manga_cover_imgs))
 
         # This grid acts as a container for the number of manga found and the table with the clickable tiles

@@ -1,0 +1,10 @@
+"""
+Classes:
+- main.py: 1
+- Manga Screen.py: 2
+- MangaReader.py: 3
+- Settings.py: 5
+- Downloaders (folder): 4
+- Homepage.py: 7
+- Utils.py: 1
+"""

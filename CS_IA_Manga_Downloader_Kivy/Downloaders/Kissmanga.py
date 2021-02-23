@@ -11,21 +11,23 @@ from utils import download_cover_img, download_image
 # English Manga Downloader
 class KissManga:
     def __init__(self, query=None):
-        # Need to find a way to get manga from all pages
         self.master = MDApp.get_running_app()
-
         self.query_url = f"https://kissmanga.org/manga_list?q={query.strip().replace(' ','+')}&action=search"
-        #self.request_error_code = None
         self.popup_msg = None
         self.hasErrorOccured = False
         
-
         try: 
-            headers = {"user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.75 Safari/537.36"}
+            headers = {
+                "user-agent": 
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.75 Safari/537.36"
+            }
+
+            # Parsing HTML for any manga based on client's input
             request_obj = requests.get(self.query_url, headers=headers)
-            #self.request_error_code = request_obj.status_code
             soup = BeautifulSoup(request_obj.content,features="lxml")
             manga_divs = soup.select(".item_movies_link")
+
+            # Error handling if no manga were found
             if manga_divs == None or manga_divs == []:
                 self.hasErrorOccured = True
                 self.popup_msg = f"No manga called {query} was found while searching Kiss Manga"
@@ -47,12 +49,19 @@ class KissManga:
         return "https://kissmanga.org" + BeautifulSoup(requests.get(url).content, features="lxml").select_one("div.a_center img").get("src")
           
     @staticmethod
-    def download_manga(root,tile,title,links, *args):
+    def download_manga(tile,title,links, *args):
+        master = MDApp.get_running_app()
         title = re.sub(r'[\\/*?:"<>|]',"",title) # Sanitize title name for dir/file creation
+        
         manga_download_link, cover_img_link = links
         download_cover_img(cover_img_link, cover_img_link.split("/")[-1])
+
+        # Parsing HTML for all the chapter links
         soup = BeautifulSoup(requests.get(manga_download_link).content, features="lxml")
-        chapter_links = [{"chapter-link":"https://kissmanga.org"+ a.get("href"), "chapter-name":" ".join(a.text.strip().split())} for a in soup.select(".listing.listing8515.full a")][::-1]
+        chapter_links = [
+            {"chapter-link":"https://kissmanga.org"+ a.get("href"), "chapter-name":" ".join(a.text.strip().split())} 
+            for a in soup.select(".listing.listing8515.full a")
+        ][::-1]
         
         # A progress bar that updates once a chapter is finished downloading
         progress_bar = tqdm(chapter_links, total=len(chapter_links))
@@ -62,15 +71,16 @@ class KissManga:
         for link_dict in chapter_links:
             chapter_name, chapter_link = link_dict.get("chapter-name"), link_dict.get("chapter-link")
             chapter_name = re.sub(r'[\\/*?:"<>|]',"",chapter_name) # Sanitize chapter name for dir/file creation
-            soup_ = BeautifulSoup(requests.get(chapter_link).content, features="lxml")
             
-            current_chapter_dir = os.path.join(root.english_manga_dir,title,chapter_name)
+            current_chapter_dir = os.path.join(master.english_manga_dir,title,chapter_name)
             
-            # If no chapter directory has been found make one and change to it
+            # If no chapter directory has been found, make one and change to it
             if not os.path.isdir(current_chapter_dir): os.mkdir(current_chapter_dir)
             os.chdir(current_chapter_dir)
 
-            imgs_list = soup_.select("#centerDivVideo img")
+            # Parse chapter's HTML for images
+            current_chapter_soup = BeautifulSoup(requests.get(chapter_link).content, features="lxml")
+            imgs_list = current_chapter_soup.select("#centerDivVideo img")
 
             # Downloads the images from the current chapter iteration using a thread pool
             with concurrent.futures.ThreadPoolExecutor(max_workers=12) as executor:

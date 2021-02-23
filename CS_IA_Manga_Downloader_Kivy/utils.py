@@ -78,10 +78,11 @@ def switch_to_screen(screen_name):
 def kill_screen(screen_name, reload_func, *args):
     master = MDApp.get_running_app()
     if master.screen_manager.has_screen(screen_name):
-        # The user can check if the progress of any downloads
-        if not master.currently_downloading:
+        if not(master.currently_downloading and screen_name == "Manga Showcase"):
             master.screen_manager.clear_widgets(screens=[master.screen_manager.get_screen(screen_name)])
-    reload_func()
+            reload_func()
+    else: 
+        reload_func()
     switch_to_screen(screen_name)
 
 def show_confirmation_dialog(title, text, proceed_callback):
@@ -111,8 +112,6 @@ def create_root_dir(manga_root_dir):
     # Makes a "root" folder to store all your downloaded manga
     if not os.path.isdir(manga_root_dir):
         os.mkdir(manga_root_dir)
-        #print("Manga root made in {manga_root_dir}")
-        #toast("Manga root made in {manga_root_dir}")
         display_message("Manga root made in {manga_root_dir}")
         filename = os.path.join(manga_root_dir, "DO NOT MOVE THE ROOT DIRECTLY, USE THE SETTINGS.txt")
 
@@ -157,20 +156,12 @@ def create_manga_dirs(downloader, title):
     current_manga_dir = os.path.join(english_manga_dir, title) if downloader in ["kissmanga", "manganelo"] else os.path.join(japanese_manga_dir, title)
     current_manga_dir = resource_path(current_manga_dir)
     
-
     if not os.path.isdir(current_manga_dir):
         os.mkdir(current_manga_dir)
-        #print(f"A folder for {title.capitalize()} has been made in the manga root directory")
-        #toast("A folder for {title.capitalize()} has been made in the manga root directory")
         display_message(f"A folder for {title.capitalize()} has been made")
     else:
-        #print(f"You already have a folder for {title.capitalize()}, if you would like to redownload this manga, please delete its folder")
-        #toast(f"You already have a folder for {title.capitalize()}, if you would like to redownload this manga, please delete its folder")
         display_message(f"You already have a folder for {title.capitalize()}, if you would like to redownload this manga, please delete its folder")
     os.chdir(current_manga_dir)
-
-
-#def convert_from_japanese_text(text): pass
 
 def convert_from_japanese_text(text):
     kks = pykakasi.kakasi()

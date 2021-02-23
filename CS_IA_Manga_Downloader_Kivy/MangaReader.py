@@ -39,17 +39,16 @@ class MangaReaderChapterSelection(ScrollView):
         
         # Get all the chapter directories and sort them alphanumerically
         self.chapter_dirs = os_sorted([os.path.abspath(dir) for dir in glob(os.path.join(self.manga_path,"*/")) if os.path.isdir(dir)])
-        self.grid = MDStackLayout(adaptive_height=True,padding=("30dp", "50dp", "30dp", "0dp"), spacing="20dp", pos_hint={"center_x":.5})#, pos_hint={"right":.5}) #padding=("30dp", "5dp")
-        
+        self.grid = MDStackLayout(adaptive_height=True,padding=("30dp", "50dp", "30dp", "0dp"), spacing="20dp", pos_hint={"center_x":.5})
+
         # Loop to create buttons for each chapter of a manga
         for chapter_dir in self.chapter_dirs:
-            chapter_name = os.path.basename(chapter_dir)
-            reload_func = lambda manga_title = self.manga_title, name=chapter_name, path=chapter_dir: self.master.create_manga_reader(manga_title, name, path)
+            chapter_name = os.path.basename(resource_path(chapter_dir))
+ 
+            def reload_func(manga_title = self.manga_title, name=chapter_name, path=chapter_dir):
+                self.master.create_manga_reader(manga_title, name, path) 
 
-            self.chapter_btn = MDRectangleFlatButton(
-                text=chapter_name,
-                pos_hint={"center_x":.5, "center_y":.8}, 
-                #on_release = partial(self.load_chapter_imgs,self.manga_title,chapter_name,chapter_dir)
+            self.chapter_btn = MDRectangleFlatButton(text=chapter_name, pos_hint={"center_x":.5, "center_y":.8}, 
                 on_release = partial(kill_screen, "Manga Reader Carousel", reload_func),
             )
             self.grid.add_widget(self.chapter_btn)
@@ -59,20 +58,18 @@ class ZoomableImage(ScatterPlane):
     def __init__(self, image_src, **kwargs):
         super().__init__(**kwargs)
         Window.bind(on_resize=Clock.schedule_once(self.center_it))
-        self.image_src = image_src
+        self.image_src = resource_path(image_src)
         self.do_translation = self.do_rotation = False 
         self.do_scale = True 
         self.scale = self.scale_min= 5
         self.scale_max= 16
         self.size_hint=(None,None)
-        self.add_widget(Image(source=self.image_src, keep_ratio = False, allow_stretch=True))
+        self.add_widget(Image(source = self.image_src, keep_ratio = False, allow_stretch = True))
         
         Clock.schedule_once(self.center_it)
 
     def center_it(self, inst):
         self.center = self.parent.center
-        print("scat size: ",self.size, "scat scale", self.scale)
-
 
     def on_touch_down(self, touch):
         # Override Scatter's `on_touch_down` behavior for mouse scroll
@@ -96,42 +93,36 @@ class MangaReaderCarouselContainer(AnchorLayout):
         self.padding=("0dp", "100dp", "0dp", "20dp") # padding: [padding_left, padding_top, padding_right, padding_bottom]
         self.chapter_imgs = [os.path.abspath(img) for img in glob(os.path.join(self.chapter_path, "*")) if os.path.isfile(img) and not str(img).endswith(".txt")]
         
-        
         self.swiping_direction = "left" if self.master.manga_swiping_direction == "Left to Right (Japanese style)" else "right"
         self.reading_direction = "bottom" if self.master.manga_reading_direction == "Scroll vertically" else self.swiping_direction
         
         self.carousel = Carousel(direction=self.reading_direction)
         
         for index, img in enumerate(self.chapter_imgs):
-            #image = Image(source=str(img), allow_stretch=True, keep_ratio=True)
-            
             self.scatter = ZoomableImage(image_src=str(img))
-            
-            #self.inner_carousel_layout = MDRelativeLayout()
+
             self.inner_carousel_layout = ScatterLayout(size=self.scatter.size)
             self.inner_carousel_layout.add_widget(MDLabel(text=f"Page {index + 1}/{len(self.chapter_imgs)}", pos_hint={"top":.6}))
-            
             
             self.inner_carousel_layout.add_widget(self.scatter)
             self.carousel.add_widget(self.inner_carousel_layout)
      
-            self.prev_btn = MDIconButton(icon="menu-left", user_font_size ="200sp", on_release = lambda *x:self.turn_page(self.scatter, self.carousel.load_previous), pos_hint={"center_x":.1, "center_y":.5}) # pos_hint={"left":.2, "y":.5},
-            self.next_btn = MDIconButton(icon="menu-right", user_font_size ="200sp", on_release = lambda *x:self.turn_page(self.scatter, self.carousel.load_next), pos_hint={"center_x":.9, "center_y":.5}) # pos_hint={"right":.8, "y":.5}
+            self.prev_btn = MDIconButton(icon="menu-left", user_font_size ="200sp", on_release = lambda *x:self.turn_page(self.carousel.load_previous), pos_hint={"center_x":.1, "center_y":.5}) 
+            self.next_btn = MDIconButton(icon="menu-right", user_font_size ="200sp", on_release = lambda *x:self.turn_page(self.carousel.load_next), pos_hint={"center_x":.9, "center_y":.5})
             
             # Changes the way the arrows load the pages depending on the reading direction
             # True/left --> Left to right (left)  JP ; False/right --> Right to left (right) EN
             if self.swiping_direction == "left" and self.reading_direction != "bottom":
-                self.prev_btn = MDIconButton(icon="menu-left", user_font_size ="200sp", on_release = lambda *x:self.turn_page(self.scatter, self.carousel.load_previous), pos_hint={"center_x":.1, "center_y":.5}) # pos_hint={"left":.2, "y":.5},
-                self.next_btn = MDIconButton(icon="menu-right", user_font_size ="200sp", on_release = lambda *x:self.turn_page(self.scatter, self.carousel.load_next), pos_hint={"center_x":.9, "center_y":.5}) # pos_hint={"right":.8, "y":.5}
+                self.prev_btn = MDIconButton(icon="menu-left", user_font_size ="200sp", on_release = lambda *x:self.turn_page(self.carousel.load_previous), pos_hint={"center_x":.1, "center_y":.5}) 
+                self.next_btn = MDIconButton(icon="menu-right", user_font_size ="200sp", on_release = lambda *x:self.turn_page(self.carousel.load_next), pos_hint={"center_x":.9, "center_y":.5}) 
 
             if platform != "android": 
                 self.inner_carousel_layout.add_widget(self.prev_btn)
                 self.inner_carousel_layout.add_widget(self.next_btn)
         self.add_widget(self.carousel)
 
-        
-
-    def turn_page(self, scatter, callback, *args):
+    # Resets the image's zoom whenever a new page is loaded   
+    def turn_page(self, callback, *args):
         for child in self.carousel.current_slide.walk_reverse(loopback=True):
             if isinstance(child, ZoomableImage):
                 child.scale = child.scale_min

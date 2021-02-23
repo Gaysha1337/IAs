@@ -1,4 +1,5 @@
 import json, os
+from kivy.core.text import Label
 
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.scrollview import ScrollView

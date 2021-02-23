@@ -11,18 +11,17 @@ from utils import download_cover_img
 # Japanese Manga Downloader
 class RawDevArt:
     def __init__(self, query=None):
-        self.master = MDApp.get_running_app()
-        print("query: ", query)
         self.query_url = f"https://rawdevart.com/search/?title={query.strip().replace(' ','+')}"
-        #self.request_error_code = None
         self.popup_msg = None
         self.hasErrorOccured = False
         
         try: 
+            # Parsing HTML for any manga based on client's input
             request_obj = requests.get(self.query_url)
-            #self.request_error_code = request_obj.status_code
             soup = BeautifulSoup(request_obj.content,"html.parser")
             manga_divs = soup.select("div.row.mb-3 > div.col-6.col-md-4.col-lg-3.col-xl-2.px-1.mb-2.lister-layout")
+            
+            # Error handling if no manga were found
             if manga_divs == None or manga_divs == []:
                 self.hasErrorOccured = True
                 self.popup_msg = f"No manga called {query} was found while searching Raw Dev Art"
@@ -38,23 +37,22 @@ class RawDevArt:
             self.popup_msg = "Error: The app can't connect to the site. Check internet connection; Site may be blocked"
             self.hasErrorOccured = True
             print("Error: can't connect to Raw Dev Art")
-            
-
-
-    # Root is the running app
-    # Links is a tuple contain: A link to the cover image and the download link        
-    @staticmethod
-    def download_manga(root,tile,title,links, *args):
-        title = re.sub(r'[\\/*?:"<>|]',"",title) # Sanitize title name for dir/file creation
-        manga_download_link, cover_img_link = links
-        
-        #create_manga_dirs(title) # After being called, the user should be in the dir for that manga
                 
+    @staticmethod
+    def download_manga(tile,title,links, *args):
+        master = MDApp.get_running_app()
+        title = re.sub(r'[\\/*?:"<>|]',"",title) # Sanitize title name for dir/file creation
+        
+        manga_download_link, cover_img_link = links               
         download_cover_img(cover_img_link, cover_img_link.split("/")[-1])
+
         soup = BeautifulSoup(requests.get(manga_download_link).content, features="lxml")
 
         # Get the chapter images and the title of the chapter
-        chapter_links = [{"chapter-imgs-link":"https://rawdevart.com" + elem.get("href"), "chapter":elem.get("title")} for elem in soup.select("div.list-group-item a", text=True)][::-1]
+        chapter_links = [
+            {"chapter-imgs-link":"https://rawdevart.com" + elem.get("href"), "chapter":elem.get("title")} 
+            for elem in soup.select("div.list-group-item a", text=True)
+        ][::-1]
 
         # A progress bar that updates once a chapter is finished downloading
         progress_bar = tqdm(chapter_links, total=len(chapter_links))
@@ -64,21 +62,21 @@ class RawDevArt:
         for link_dict in chapter_links:
             chapter, img_url = link_dict.get("chapter"), link_dict.get("chapter-imgs-link") 
             chapter = re.sub(r'[\\/*?:"<>|]',"",chapter) # Sanitize chapter name for dir/file creation
-            soup_ = BeautifulSoup(requests.get(img_url).content, features="lxml")
             
-            current_chapter_dir = os.path.join(root.japanese_manga_dir,title,chapter)
+            current_chapter_dir = os.path.join(master.japanese_manga_dir,title,chapter)
             
             # If no chapter directory has been found make one and change to it
             if not os.path.isdir(current_chapter_dir): os.mkdir(current_chapter_dir)
             os.chdir(current_chapter_dir)
 
             # The images found for that specific chapter
-            imgs_list = soup_.select("div.mb-3 img.img-fluid.not-lazy")
+            current_chapter_soup = BeautifulSoup(requests.get(img_url).content, features="lxml")
+            imgs_list = current_chapter_soup.select("div.mb-3 img.img-fluid.not-lazy")
 
             # Downloads the images from the current chapter iteration using a thread pool
             with concurrent.futures.ThreadPoolExecutor(max_workers=12) as executor:
                 #args = [img.get('src'), title, chapter_name, page_num]
-                futures = [executor.submit(RawDevArt.download_img, img_url=img.get('data-src'), title=title, chapter_name=chapter) for page_num, img in enumerate(imgs_list)]
+                futures = [executor.submit(RawDevArt.download_img, img.get('data-src'), title, chapter) for img in imgs_list]
                 for future in futures:
                     result = future.result()
             # Update the progress bar after one chapter is downloaded 
@@ -102,6 +100,5 @@ class RawDevArt:
             filename = re.sub(r'[\\/*?:"<>|]',"",filename) # Sanitize filename for creation
             
             with open(filename, "wb") as f:
-                #f.write(response.content)
                 for chunk in response.iter_content(chunk_size=1024):
                     f.write(chunk)

@@ -20,7 +20,7 @@ from kivymd.uix.dialog import MDDialog
 from kivymd.uix.textfield import MDTextField
 
 # Screens and Screen-related
-from kivy.uix.screenmanager import ScreenManager
+from kivy.uix.screenmanager import Screen, ScreenManager
 from MangaScreen import MangaScreen
 from Homepage import MangaInputPage, LandingPage, MangaReadingPage, DownloadedMangaDisplay
 from MangaShowcase import MangaCoverContainer
@@ -28,7 +28,6 @@ from MangaReader import MangaReaderChapterSelection, MangaReaderCarouselContaine
 
 # Utils
 from utils import create_language_dirs, create_root_dir, move_manga_root, resource_path, show_confirmation_dialog, create_screen
-from kivy.utils import platform
 
 # Setting a default font
 from kivy.core.text import LabelBase, DEFAULT_FONT
@@ -51,9 +50,8 @@ Builder.load_string(
         on_text_validate: root.get_manga_query_data()
 '''
 )
-
 class MangaDownloader(MDApp):
-    # This property is declared here as 'global' property, it will contain any found manga related to user input
+    # This property will contain any data about any found manga from the user input (download links, title, cover image link, etc...)
     manga_data = DictProperty(None)
     # This property will be a reference to the selected manga site from which the app will download from
     downloader = StringProperty(None)
@@ -110,20 +108,13 @@ class MangaDownloader(MDApp):
         # Screen related
         self.screen_manager = ScreenManager()
 
-        #self.reading_screens = ["Reading Page", "Manga Reader Chapter Selection", "Manga Reader Carousel"]
-        #self.downloading_screens = ["Manga Input Page", "Manga Showcase", "Downloaded Manga Showcase"]
+        self.reading_screens = ["Reading Page", "Manga Reader Chapter Selection", "Manga Reader Carousel"]
+        self.downloading_screens = ["Manga Input Page", "Manga Showcase", "Downloaded Manga Showcase"]
 
         self.landing_page = LandingPage(self)
         screen = MangaScreen(name="Landing Page")
         screen.add_widget(self.landing_page)
         self.screen_manager.add_widget(screen)
-
-        # Android Permissions:
-        """
-        if platform == "android":
-            from android.permissions import request_permissions, Permission
-            request_permissions([Permission.READ_EXTERNAL_STORAGE, Permission.WRITE_EXTERNAL_STORAGE])
-        """
         
         return self.screen_manager
 
@@ -135,7 +126,6 @@ class MangaDownloader(MDApp):
         )
         return True
 
-    
     def on_start(self, **kwargs):
         self.current_screen = self.screen_manager.get_screen(self.screen_manager.current)
         # The path where all manga will be downloaded to (default is manga root)
@@ -200,23 +190,25 @@ class MangaDownloader(MDApp):
         then not all the chapters will be downloaded to the new path
         """ 
         def change_download_path(value=value):
-            root_src, new_dst = resource_path(self.download_path), resource_path(value)
+            root_src, new_root_dst = resource_path(self.download_path), resource_path(value)
             try:
                 # Recursive function to move the english and Japanese manga containing folders to the new destination
-                move_manga_root(root_src, new_dst)
+                move_manga_root(root_src, new_root_dst)
                 self.manga_root_dir = self.download_path = resource_path(self.config.get("Settings", "download_path"))
                 toast(f"Manga Download Path has been changed to {self.manga_root_dir}")
-            
             except PermissionError: 
-                toast("Permission Error occurred; You maybe not have access")
+                toast("Permission Error occurred; You maybe don't have access")
             except:
-                if root_src != new_dst: 
+                if root_src != new_root_dst: 
                     toast("Unknown Error: If you have moved any folders/files yourself, they will appear in the new path")
 
-        # Moves the root/download folder to the new path
+        # Warning incase client tries to change download path while downloading a manga
         if key == "download_path" and os.path.isdir(resource_path(os.path.join(value))):
             if self.currently_downloading:
-                toast("Warning: The download path has been changed while a manga is being downloaded.\nAll new chapters will be downloaded to the new path")
+                toast(
+                    "Warning: The download path has been changed while a manga is being downloaded." +
+                    "\nAll new chapters will be downloaded to the new path"
+                )
             change_download_path()
 
         # A callback function for a confirmation dialog to confirm reseting all setting to their default values
@@ -228,6 +220,8 @@ class MangaDownloader(MDApp):
             config.setall("Settings",self.default_settings_vals)
             config.write()
             change_download_path(resource_path(self.default_settings_vals.get("download_path")))
+
+            # Refreshes the settings menu to show that the default settings have been applied
             self.close_settings()
             self.destroy_settings()
             self.open_settings()

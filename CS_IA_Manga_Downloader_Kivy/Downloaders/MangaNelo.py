@@ -16,13 +16,12 @@ class MangaNelo:
     }
     def __init__(self,query=None):
         self.query_url = f"https://m.manganelo.com/search/story/{query.strip().replace(' ','_')}"
-        #self.request_error_code = None
         self.popup_msg = None
         self.hasErrorOccured = False
         
-        try: 
+        try:
+            # Parsing HTML for any manga based on client's input 
             request_obj = requests.get(self.query_url)
-            #self.request_error_code = request_obj.status_code
             soup = BeautifulSoup(request_obj.content,features="lxml")
             query_search_results = soup.find("div",attrs={"class":"panel-search-story"})
             
@@ -30,7 +29,6 @@ class MangaNelo:
             if query_search_results == None or query_search_results == []:
                 self.hasErrorOccured = True
                 self.popup_msg = f"No manga called {query} was found while searching Manganelo"
-                print(self.popup_msg)
                 query_search_results, self.manga_data = [], {}
             else:
                 self.manga_links = [i.find("a").get("href") for i in query_search_results.findAll("h3")] 
@@ -43,14 +41,19 @@ class MangaNelo:
             print("Error: can't connect to Manganelo")
 
     @staticmethod
-    def download_manga(root, tile, title, links, *args):
+    def download_manga(tile, title, links, *args):
+        master = MDApp.get_running_app()
         title = re.sub(r'[\\/*?:"<>|]',"",title) # Sanitize title name for dir/file creation
+        
         manga_download_link, cover_img_link = links        
         download_cover_img(cover_img_link, cover_img_link.split("/")[-1])
 
+        # Parsing HTML for all the chapter links
         soup = BeautifulSoup(requests.get(manga_download_link).content, features="lxml")
-        
-        chapter_links = [{"imgs-link":link.get("href"), "chapter":link.text.strip()} for link in soup.select("a.chapter-name.text-nowrap")][::-1]
+        chapter_links = [
+            {"imgs-link":link.get("href"), "chapter":link.text.strip()} 
+            for link in soup.select("a.chapter-name.text-nowrap")
+        ][::-1]
         
         # A progress bar that updates once a chapter is finished downloading
         progress_bar = tqdm(chapter_links, total=len(chapter_links))
@@ -61,16 +64,15 @@ class MangaNelo:
             chapter, link = link_dict.get("chapter"), link_dict.get("imgs-link")
             chapter = re.sub(r'[\\/*?:"<>|]',"",chapter) # Sanitize chapter name for dir/file creation
 
-            r_ = requests.get(link, headers= MangaNelo.headers)
-            soup_ = BeautifulSoup(r_.content, features="lxml")
-            current_chapter_dir = os.path.join(root.english_manga_dir,title,chapter)
+            current_chapter_dir = os.path.join(master.english_manga_dir,title,chapter)
             
-            # If no chapter directory has been found make one and change to it
+            # If no chapter directory has been found, make one and change to it
             if not os.path.isdir(current_chapter_dir): os.mkdir(current_chapter_dir)
             os.chdir(current_chapter_dir)
 
-            # The images found for that specific chapter
-            imgs_list = soup_.select("div.container-chapter-reader img")
+            # Parse chapter's HTML for images
+            current_chapter_soup = BeautifulSoup(requests.get(link, headers = MangaNelo.headers).content, features="lxml")
+            imgs_list = current_chapter_soup.select("div.container-chapter-reader img")
 
             # Downloads the images from the current chapter iteration using a thread pool
             with concurrent.futures.ThreadPoolExecutor(max_workers=12) as executor:

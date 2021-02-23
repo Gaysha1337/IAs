@@ -83,9 +83,6 @@ class MangaCoverContainer(ScrollView):
         create_manga_dirs(self.master.downloader, title)
         
         # Calls the appropriate downloader based on the selected site and starts a thread to prevent kivy event loop from locking
-        download_thread_target = partial(self.downloader_links_methods.get(
-            self.master.downloader, lambda *args: "invalid downloader or download method"), 
-            self.master, tile, title, self.manga_data.get(title)
-        )
+        download_thread_target = partial(self.downloader_links_methods.get(self.master.downloader), tile, title, self.manga_data.get(title))
         self.master.download_thread = Thread(name="Download Thread",target=download_thread_target, daemon=True)
         self.master.download_thread.start()

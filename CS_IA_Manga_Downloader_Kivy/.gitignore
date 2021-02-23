@@ -1,2 +1,4 @@
 **/Blockchain/
 /UIX/**
+/dist/**
+/build/**

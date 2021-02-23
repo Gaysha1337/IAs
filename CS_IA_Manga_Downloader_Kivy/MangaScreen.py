@@ -30,43 +30,37 @@ class MangaScreen(Screen):
 
 
     # Keyboard methods
+    # print('The key', keycode, 'have been pressed', ' - text is %r' % text, ' - modifiers are %r' % modifiers, sep="\n")
     def _keyboard_closed(self):
         print('My keyboard have been closed!')
         #self._keyboard.unbind(on_key_down=self._on_keyboard_down)
         #self._keyboard = None
 
     def _on_keyboard_down(self, keyboard, keycode, text, modifiers):
-        print('The key', keycode, 'have been pressed', ' - text is %r' % text, ' - modifiers are %r' % modifiers, sep="\n")
-        if keycode[1] in ["escape"]:
+        
+        if keycode[1] in ["escape", 27]:
             if self.master.current_screen.name == "Landing Page":
                 if not isinstance(self.master.dialog, ConfirmationDialog): 
-                    self.master.dialog.dismiss()
-                show_confirmation_dialog(
-                    title= "Are you sure you want to exit the app?",
-                    text= "Warning: The Download for the manga may stop when you attempt to switch apps or shutdown your android device",
-                    proceed_callback = self.master.stop
-                )
+                    show_confirmation_dialog(
+                        title= "Are you sure you want to exit the app?",
+                        text= "Warning: The Download for the manga may stop when you attempt to switch apps or shutdown your android device",
+                        proceed_callback = self.master.stop
+                    )
+                    self.master.dialog = None
             else: 
                 switch_to_screen(self.master.current_screen.prev_screen)
-        
-        # Keyboard shortcuts to go between the images of a chapter
 
-        if self.name == "Manga Reader Carousel":
-            
-            if keycode[1] in ["right","down", "d", "s"] and self.name == "Manga Reader Carousel": 
-                #self.master.manga_reader.carousel.load_next()
+        # Keyboard shortcuts to go between the images of a chapter
+        if self.name == "Manga Reader Carousel" and platform != "android":
+            if keycode[1] in ["right","down", "d", "s"]: 
                 self.master.manga_reader.next_btn.trigger_action(0)
-            
-            if keycode[1] in ["left","up", "a", "w"] and self.name == "Manga Reader Carousel": 
-                #self.master.manga_reader.carousel.load_previous()
+
+            if keycode[1] in ["left","up", "a", "w"]:
                 self.master.manga_reader.prev_btn.trigger_action(0)
-            
+                
         # Return True to accept the key. Otherwise, it will be used by the system.
         return True 
     
-
-
-
 class ToolBar(MDToolbar):
     def __init__(self,**kwargs):
         super().__init__(**kwargs)
