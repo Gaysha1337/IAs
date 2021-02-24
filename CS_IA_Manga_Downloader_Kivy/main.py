@@ -87,7 +87,6 @@ class MangaDownloader(MDApp):
      
     def build_settings(self, settings):
         settings.add_json_panel('Manga Downloader Settings', self.config, data=AppSettings.json_settings)
-
     # Method that builds all the GUI elements    
     def build(self):
         Window.bind(on_request_close=self.on_request_close)
@@ -116,6 +115,11 @@ class MangaDownloader(MDApp):
         screen = MangaScreen(name="Landing Page")
         screen.add_widget(self.landing_page)
         self.screen_manager.add_widget(screen)
+
+        # Import android permissions:
+        if platform == "android":
+            from android.permissions import request_permissions, Permission
+            request_permissions([Permission.READ_EXTERNAL_STORAGE, Permission.WRITE_EXTERNAL_STORAGE])
         
         # Import android permissions:
         if platform == "android":
@@ -166,7 +170,7 @@ class MangaDownloader(MDApp):
     def create_manga_display(self):
         self.manga_display = MangaCoverContainer(self)
         create_screen(name="Manga Showcase", prev_screen="Manga Input Page", content=self.manga_display)
-
+        
     """ Reading Related Screens """
 
     # Creates the page where the user can choose to read manga in English or Japanese

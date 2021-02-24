@@ -19,10 +19,11 @@ class MangaScreen(Screen):
         super().__init__(**kwargs)
         self.master = MDApp.get_running_app()
         self.prev_screen = prev_screen
-        self._keyboard = Window.request_keyboard(self._keyboard_closed, self, 'text')
-        if self._keyboard.widget:
+        self._keyboard = Window.request_keyboard(self._keyboard_closed, self, 'text')# Window.bind(on_key_down=self._on_keyboard_down)
+
+        #if self._keyboard.widget:
             # If it exists, this widget is a VKeyboard object which you can use to change the keyboard layout.
-            pass
+            #pass
         self._keyboard.bind(on_key_down=self._on_keyboard_down)
         
     def on_pre_enter(self, *args, **kwargs):
@@ -32,34 +33,43 @@ class MangaScreen(Screen):
     # Keyboard methods
     # print('The key', keycode, 'have been pressed', ' - text is %r' % text, ' - modifiers are %r' % modifiers, sep="\n")
     def _keyboard_closed(self):
-        print('My keyboard have been closed!')
-        #self._keyboard.unbind(on_key_down=self._on_keyboard_down)
-        #self._keyboard = None
+        print('My keyboard have been closed!',self.name)
 
-    def _on_keyboard_down(self, keyboard, keycode, text, modifiers):
+        # Hides the keyboard when a button is pressed on android, except for the input page
+        if self.name != "Manga Input Page":
+            self._keyboard.unbind(on_key_down=self._on_keyboard_down)
+            self._keyboard = None
+
+    # self, keyboard, keycode, text, modifiers, *args
+    # self, instance, keycode, scancode, text, modifiers
+    def _on_keyboard_down(self, keyboard, keycode, text, modifiers, *args):
+        print(self, keyboard, keycode, text, modifiers, *args)
+
         
         if keycode[1] in ["escape", 27]:
             if self.master.current_screen.name == "Landing Page":
                 if not isinstance(self.master.dialog, ConfirmationDialog): 
-                    show_confirmation_dialog(
-                        title= "Are you sure you want to exit the app?",
-                        text= "Warning: The Download for the manga may stop when you attempt to switch apps or shutdown your android device",
-                        proceed_callback = self.master.stop
-                    )
+                    self.master.on_request_close()
                     self.master.dialog = None
             else: 
                 switch_to_screen(self.master.current_screen.prev_screen)
+            
+            return True
 
         # Keyboard shortcuts to go between the images of a chapter
         if self.name == "Manga Reader Carousel" and platform != "android":
             if keycode[1] in ["right","down", "d", "s"]: 
                 self.master.manga_reader.next_btn.trigger_action(0)
+                return True
 
             if keycode[1] in ["left","up", "a", "w"]:
                 self.master.manga_reader.prev_btn.trigger_action(0)
+                return True
                 
         # Return True to accept the key. Otherwise, it will be used by the system.
-        return True 
+        #return True 
+        return False
+        
     
 class ToolBar(MDToolbar):
     def __init__(self,**kwargs):
