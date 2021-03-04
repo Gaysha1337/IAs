@@ -120,11 +120,7 @@ class MangaDownloader(MDApp):
         if platform == "android":
             from android.permissions import request_permissions, Permission
             request_permissions([Permission.READ_EXTERNAL_STORAGE, Permission.WRITE_EXTERNAL_STORAGE])
-        
-        # Import android permissions:
-        if platform == "android":
-            from android.permissions import request_permissions, Permission
-            request_permissions([Permission.READ_EXTERNAL_STORAGE, Permission.WRITE_EXTERNAL_STORAGE])
+
         
         return self.screen_manager
 
