@@ -1,8 +1,9 @@
 import os, threading, time
-from threading import Thread
+from threading import Thread, main_thread
 from functools import partial
 
 from kivymd.app import MDApp
+from kivy.clock import mainthread
 
 from kivymd.uix.gridlayout import MDGridLayout
 from kivymd.uix.stacklayout import MDStackLayout
@@ -20,7 +21,7 @@ from Downloaders.Kissmanga import KissManga
 from Downloaders.Senmanga import SenManga
 
 # Utils
-from utils import create_manga_dirs
+from utils import create_manga_dirs, display_message
 
 
 class MangaCoverTile(SmartTileWithLabel):
@@ -39,6 +40,9 @@ class MangaCoverTile(SmartTileWithLabel):
             self.remove_widget(self.progressbar)
         self.progressbar = MDProgressBar(value=0,pos_hint={"center_x":.5,"center_y": .5}, opacity = 0)
         self.add_widget(self.progressbar)
+
+        # Remove thread from list since it has finished executing
+        self.master.download_threads.pop(self.text) # Text is the title of the manga
 
 # Downloaded Manga Display
 class MangaCoverContainer(ScrollView):
@@ -74,15 +78,23 @@ class MangaCoverContainer(ScrollView):
         self.add_widget(self.outer_gird)
 
     # Note: the param tile acts as a button instance
+    #@mainthread
     def make_request(self,title,tile):
-        self.master.currently_downloading = True 
-        toast(f"Downloading {title}")
-        tile.progressbar.opacity = 1                    
         
-        # Creates the directory for that manga within the manga root and changes to it
-        create_manga_dirs(self.master.downloader, title)
-        
+
         # Calls the appropriate downloader based on the selected site and starts a thread to prevent kivy event loop from locking
         download_thread_target = partial(self.downloader_links_methods.get(self.master.downloader), tile, title, self.manga_data.get(title))
-        self.master.download_thread = Thread(name="Download Thread",target=download_thread_target, daemon=True)
-        self.master.download_thread.start()
+        download_thread = Thread(name=f"Download Thread {title}",target=download_thread_target)        
+
+        if self.master.download_threads.get(title, None) == None:
+            self.master.download_threads.update({title:download_thread})
+            self.master.currently_downloading = True 
+            tile.progressbar.opacity = 1
+            
+            # Creates the directory for that manga within the manga root and changes to it
+            create_manga_dirs(self.master.downloader, title)
+
+            download_thread.start()
+        else:
+            display_message(f"{title} is already downloading")
+

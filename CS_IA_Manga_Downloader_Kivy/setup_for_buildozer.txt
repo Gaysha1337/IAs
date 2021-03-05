@@ -18,3 +18,13 @@
 8. Place the folder with all the code onto to the desktop
 
 9. Make sure to clean and update buildozer before doing step 3
+
+
+10. Buildozer debug: adb logcat *:S python:D
+
+
+# Did not work
+11. buildozer.spec: 
+    # (bool) Use --private data storage (True) or --dir public storage (False)
+    # OG value: "#android.private_storage = True"
+    android.private_storage = False

@@ -48,4 +48,4 @@ exe = EXE(pyz,
           upx_exclude=[],
           runtime_tmpdir=None,
           console=False,
-          icon='Icons\\Manga Downloader Icon.ico')
+          icon='Icons\\MangaDownloaderIcon.ico')

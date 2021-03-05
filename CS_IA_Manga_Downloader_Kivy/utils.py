@@ -47,7 +47,7 @@ def create_screen(name, prev_screen, content, *args, **kwargs):
     screen.add_widget(content)
     MDApp.get_running_app().screen_manager.add_widget(screen)
 
-def switch_to_screen(screen_name):
+def switch_to_screen(screen_name, *args):
     master = MDApp.get_running_app()
     master.screen_manager.current = screen_name
     master.current_screen = master.screen_manager.get_screen(master.screen_manager.current)
@@ -59,10 +59,14 @@ def kill_screen(screen_name, reload_func, *args):
     if master.screen_manager.has_screen(screen_name):
         if not(master.currently_downloading and screen_name == "Manga Showcase"):
             master.screen_manager.clear_widgets(screens=[master.screen_manager.get_screen(screen_name)])
-            reload_func()
+            #reload_func()
+            Clock.schedule_once(partial(reload_func))
     else: 
-        reload_func()
-    switch_to_screen(screen_name)
+        #reload_func()
+        Clock.schedule_once(partial(reload_func))
+        #Clock.schedule_once(lambda *args: reload_func())
+    #switch_to_screen(screen_name)
+    Clock.schedule_once(partial(switch_to_screen, screen_name))
 
 def show_confirmation_dialog(title, text, proceed_callback):
     master = MDApp.get_running_app()
@@ -98,7 +102,7 @@ def create_root_dir(manga_root_dir):
             f.write("")
     else:
         print("You already have a manga root")
-    return manga_root_dir
+    return resource_path(manga_root_dir)
 
 
 def create_language_dirs(language_dirs:list):
@@ -134,13 +138,31 @@ def create_manga_dirs(downloader, title):
     # Determines whether the manga being downloaded is in english or japanese
     current_manga_dir = os.path.join(english_manga_dir, title) if downloader in ["kissmanga", "manganelo"] else os.path.join(japanese_manga_dir, title)
     current_manga_dir = resource_path(current_manga_dir)
+    # Production code
     
     if not os.path.isdir(current_manga_dir):
         os.mkdir(current_manga_dir)
         display_message(f"A folder for {title.capitalize()} has been made")
     else:
-        display_message(f"You already have a folder for {title.capitalize()}, if you would like to redownload this manga, please delete its folder")
+        display_message(f"You already have a folder for {title.capitalize()}, it will be downloaded once again")
+        #shutil.rmtree(current_manga_dir)
+    #os.mkdir(current_manga_dir)
     os.chdir(current_manga_dir)
+    
+    # Debug code
+    """
+    if os.path.isdir(current_manga_dir):
+        #os.mkdir(current_manga_dir)
+        #shutil.rmtree(current_manga_dir)
+        display_message(f"[Debug Mode]: If a manga is downloaded it will be deleted")
+        #display_message(f"A folder for {title.capitalize()} has been made in {}")
+    #else:
+        #display_message(f"You already have a folder for {title.capitalize()}, it will be downloaded once again")
+        #shutil.rmtree(current_manga_dir)
+    os.mkdir(current_manga_dir)
+    os.chdir(current_manga_dir)
+    """
+    display_message(f"A folder for {title.capitalize()} has been made in {current_manga_dir}")
 
 def convert_from_japanese_text(text):
     kks = pykakasi.kakasi()

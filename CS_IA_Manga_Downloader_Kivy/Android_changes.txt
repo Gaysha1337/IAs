@@ -1,0 +1,17 @@
+- Keyboard issues:
+    - Keyboard kept popping up android when a screen was created:
+        - Fixed:
+
+- Loading images in Carousel, some are white:
+    - Possibly fixed white images appearing on android, by adding resource_path
+
+- Carousel Images position are not resetting:
+    - Fixed: 
+        - Override on_index touch method to detect a swipe (not on android):
+            - Android Potential Fix: Calling center method after resetting scale
+
+- Added feature where you can exit settings with esc/back button:
+    - If on landing page, it wont prompt you about exiting the app
+
+- Android: Downloading more than one manga leads to incorrect paths:
+    - Fixed: using thread dictionary

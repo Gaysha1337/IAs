@@ -7,7 +7,7 @@ title = MangaDownloader
 package.name = mangadownloader
 
 # (str) Package domain (needed for android/ios packaging)
-package.domain = org.test
+package.domain = com.mangadownloader
 
 # (str) Source code where the main.py live
 source.dir = .
@@ -41,7 +41,7 @@ version = 0.1
 # kivymd (version that displays icons on android): git+https://github.com/HeaTTheatR/KivyMD.git
 # os,json,re,threading,pathlib,shutil,
 # bs4
-requirements = python3==3.8.5,hostpython3==3.8.5,openssl,android,python-for-android,kivy==2.0.0rc4,git+https://github.com/HeaTTheatR/KivyMD.git,sdl2_ttf==2.0.15,Pillow,tqdm,pykakasi,klepto,dill,pox,plyer,natsort,lxml,bs4,beautifulsoup4,soupsieve,requests,urllib3,chardet,idna,certifi,simplejson
+requirements = python3==3.8.5,hostpython3==3.8.5,openssl,android,python-for-android,kivy==2.0.0rc4,git+https://github.com/HeaTTheatR/KivyMD.git,sdl2_ttf==2.0.15,Pillow,pygments,tqdm,pykakasi,klepto,dill,pox,plyer,natsort,lxml,bs4,beautifulsoup4,soupsieve,requests,urllib3,chardet,idna,certifi,simplejson
 
 # (str) Custom source folders for requirements
 # Sets custom source for any requirements with recipes
@@ -54,7 +54,7 @@ requirements = python3==3.8.5,hostpython3==3.8.5,openssl,android,python-for-andr
 #presplash.filename = %(source.dir)s/data/presplash.png
 
 # (str) Icon of the application
-#icon.filename = %(source.dir)s/data/icon.png
+icon.filename = %(source.dir)s/Icons/MangaDownloaderIcon.png
 
 # (str) Supported orientation (one of landscape, sensorLandscape, portrait or all)
 orientation = portrait
@@ -91,7 +91,7 @@ fullscreen = 0
 
 # (list) Permissions
 #, WRITE_EXTERNAL_STORAGE, READ_EXTERNAL_STORAGE
-android.permissions = INTERNET, WRITE_EXTERNAL_STORAGE, READ_EXTERNAL_STORAGE
+android.permissions = INTERNET, WRITE_EXTERNAL_STORAGE , READ_EXTERNAL_STORAGE
 
 # (int) Target Android API, should be as high as possible.
 #android.api = 27
@@ -123,7 +123,7 @@ android.permissions = INTERNET, WRITE_EXTERNAL_STORAGE, READ_EXTERNAL_STORAGE
 # (bool) If True, then skip trying to update the Android sdk
 # This can be useful to avoid excess Internet downloads or save time
 # when an update is due and you just want to test/build your package
-#android.skip_update = False
+android.skip_update = True
 
 # (bool) If True, then automatically accept SDK license
 # agreements. This is intended for automation only. If set to False,
