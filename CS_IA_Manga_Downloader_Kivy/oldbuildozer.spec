@@ -41,7 +41,7 @@ version = 0.1
 # kivymd (version that displays icons on android): git+https://github.com/HeaTTheatR/KivyMD.git
 # os,json,re,threading,pathlib,shutil,
 # bs4
-requirements = python3==3.8.5,hostpython3==3.8.5,openssl,android,python-for-android,kivy==2.0.0rc4,git+https://github.com/HeaTTheatR/KivyMD.git,sdl2_ttf==2.0.15,Pillow,tqdm,pykakasi,klepto,dill,pox,plyer,natsort,lxml,bs4,beautifulsoup4,soupsieve,requests,urllib3,chardet,idna,certifi,simplejson
+requirements = python3==3.8.5,hostpython3==3.8.5,openssl,android,python-for-android,kivy==2.0.0rc4,https://github.com/kivymd/KivyMD/archive/master.zip,sdl2_ttf==2.0.15,tqdm,pykakasi,klepto,dill,pox,plyer,natsort,lxml,bs4,beautifulsoup4,soupsieve,requests,urllib3,chardet,idna,certifi
 
 # (str) Custom source folders for requirements
 # Sets custom source for any requirements with recipes
@@ -91,7 +91,7 @@ fullscreen = 0
 
 # (list) Permissions
 #, WRITE_EXTERNAL_STORAGE, READ_EXTERNAL_STORAGE
-android.permissions = INTERNET, WRITE_EXTERNAL_STORAGE, READ_EXTERNAL_STORAGE
+android.permissions = INTERNET
 
 # (int) Target Android API, should be as high as possible.
 #android.api = 27

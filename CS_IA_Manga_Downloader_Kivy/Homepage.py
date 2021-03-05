@@ -1,8 +1,7 @@
 import os, sys
+from glob import glob
 from functools import partial
 from pathlib import Path
-from kivy.clock import Clock
-from kivy.uix.button import Button
 from kivymd.app import MDApp
 from kivy.uix.scrollview import ScrollView
 from kivymd.uix.imagelist import SmartTileWithLabel
@@ -156,8 +155,11 @@ class DownloadedMangaDisplay(ScrollView):
 
         self.language_folder = self.master.japanese_manga_dir if language == "Japanese" else self.master.english_manga_dir
 
-        self.manga_folders = [resource_path(str(dir)) for dir in Path(self.language_folder).glob("*/")]
-        self.manga_cover_imgs = [resource_path(str(img_path)) for img_path in Path(self.language_folder).glob("*/*.jpg")]
+        #self.manga_folders = [resource_path(str(dir)) for dir in Path(self.language_folder).glob("*/")]
+        # os.path.abspath(dir) for dir in glob(os.path.join(self.manga_path,"*/")) if os.path.isdir(dir)]
+        self.manga_folders = [os.path.abspath(dir) for dir in glob(os.path.join(self.language_folder,"*/")) if os.path.isdir(dir)]
+        #self.manga_cover_imgs = [resource_path(str(img_path)) for img_path in Path(self.language_folder).glob("*/*.jpg")]
+        self.manga_cover_imgs = [resource_path(str(img_path)) for img_path in glob(os.path.join(self.language_folder, "*/*.jpg")) if os.path.isfile(img_path)]
         self.manga_tile_data = list(zip(self.manga_folders, self.manga_cover_imgs))
 
         # This grid acts as a container for the number of manga found and the table with the clickable tiles
@@ -167,7 +169,9 @@ class DownloadedMangaDisplay(ScrollView):
         self.grid = MDStackLayout(adaptive_height=True, orientation="lr-tb", spacing=("20dp","20dp"), padding=("5dp", "30dp", "5dp", "30dp"))
         
         for i in self.manga_tile_data:
-            title, manga_path = i[0].split("\\")[-1], i[0]
+            # title = i[0].split("\\")[-1]
+            title, manga_path = os.path.basename(i[0]), resource_path(i[0])
+            print("i: ", i ,"title",title)
             reload_func = lambda title=title, manga_path=manga_path:self.master.create_manga_reader_chapter_selection(title, manga_path)
             self.btn = MangaCoverTile(source=i[1], text=title, size_hint=(.25,.25), on_release=partial(kill_screen,"Manga Reader Chapter Selection", reload_func))
             self.grid.add_widget(self.btn)

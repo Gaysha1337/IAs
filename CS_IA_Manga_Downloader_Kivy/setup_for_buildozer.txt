@@ -3,7 +3,6 @@
 
 2. Add requirements (see requirements.txt)
 
-
 3. When deploying add the verbose flag (-v), full command: buildozer -v android debug deploy run
 
 4. Weird bug with httplib2:
@@ -13,3 +12,9 @@
     - Replace bs4 with beautifulsoup4 in buildozer.spec requirements
 
 6. Make sure to accept the sdk license in the spec file
+
+7. Super important - Remove any super large files (in my case, the UIX folder)
+
+8. Place the folder with all the code onto to the desktop
+
+9. Make sure to clean and update buildozer before doing step 3

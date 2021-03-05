@@ -12,27 +12,6 @@ from kivy.utils import platform # Used to tell if platform is android
 from kivymd.toast import toast
 import pykakasi # Used for converting Japanese Kana to Romanji
 
-
-class PausableThread(threading.Thread):
-    def __init__(self, group=None, target=None, name=None, args=(), kwargs={}):
-        self._event = threading.Event()
-        if target:
-            args = (self,) + args
-        super(PausableThread, self).__init__(group, target, name, args, kwargs)
-
-    def is_paused(self):
-        return self._event.is_set()
-
-    def pause(self):
-        self._event.clear()
-
-    def resume(self):
-        self._event.set()
-
-    def wait_if_paused(self):
-        print("about to call event.wait()")
-        self._event.wait()
-
 class ConfirmationDialog(MDDialog):
     def __init__(self, title, text, proceed_button_callback,**kwargs):
         self.master = MDApp.get_running_app()
