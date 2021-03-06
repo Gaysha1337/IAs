@@ -65,7 +65,7 @@ class ZoomableImage(ScatterPlane):
         self.scale = self.scale_min= 5
         self.scale_max= 16
         self.size_hint=(None,None)
-        self.add_widget(Image(source = self.image_src, keep_ratio = False, allow_stretch = True))
+        self.add_widget(Image(source = resource_path(self.image_src), keep_ratio = False, allow_stretch = True, nocache=True))
         
         Clock.schedule_once(self.center_it)
 
@@ -104,10 +104,10 @@ class MangaReaderCarouselContainer(AnchorLayout):
         self.chapter_path = chapter_path
         self.padding=("0dp", "100dp", "0dp", "20dp") # padding: [padding_left, padding_top, padding_right, padding_bottom]
         
-        self.chapter_imgs = [
+        self.chapter_imgs = os_sorted([
             resource_path(img) for img in glob(os.path.join(self.chapter_path, "*")) 
-            if os.path.isfile(img) and not str(img).endswith(".txt")    
-        ]
+            if os.path.isfile(resource_path(img)) and not resource_path(img).endswith(".txt")    
+        ])
 
         # Debug:
         if platform == "android":

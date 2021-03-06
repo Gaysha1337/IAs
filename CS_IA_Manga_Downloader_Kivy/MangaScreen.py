@@ -7,8 +7,6 @@ from kivymd.toast.kivytoast.kivytoast import toast
 from kivymd.uix.button import MDFlatButton, MDIconButton
 from kivy.uix.screenmanager import Screen, ScreenManager
 from kivymd.uix.toolbar import MDToolbar
-from kivymd.uix.dialog import MDDialog
-from kivymd.uix.textfield import MDTextField
 
 from kivy.utils import platform
 from utils import switch_to_screen, show_confirmation_dialog, ConfirmationDialog

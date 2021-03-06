@@ -59,13 +59,9 @@ def kill_screen(screen_name, reload_func, *args):
     if master.screen_manager.has_screen(screen_name):
         if not(master.currently_downloading and screen_name == "Manga Showcase"):
             master.screen_manager.clear_widgets(screens=[master.screen_manager.get_screen(screen_name)])
-            #reload_func()
             Clock.schedule_once(partial(reload_func))
     else: 
-        #reload_func()
         Clock.schedule_once(partial(reload_func))
-        #Clock.schedule_once(lambda *args: reload_func())
-    #switch_to_screen(screen_name)
     Clock.schedule_once(partial(switch_to_screen, screen_name))
 
 def show_confirmation_dialog(title, text, proceed_callback):
@@ -95,7 +91,7 @@ def create_root_dir(manga_root_dir):
     # Makes a "root" folder to store all your downloaded manga
     if not os.path.isdir(manga_root_dir):
         os.mkdir(manga_root_dir)
-        display_message("Manga root made in {manga_root_dir}")
+        display_message(f"Manga root made in {manga_root_dir}")
         filename = os.path.join(manga_root_dir, "DO NOT MOVE THE ROOT DIRECTLY, USE THE SETTINGS.txt")
 
         with open(filename, "w") as f:
@@ -162,7 +158,7 @@ def create_manga_dirs(downloader, title):
     os.mkdir(current_manga_dir)
     os.chdir(current_manga_dir)
     """
-    display_message(f"A folder for {title.capitalize()} has been made in {current_manga_dir}")
+    #display_message(f"A folder for {title.capitalize()} has been made in {current_manga_dir}")
 
 def convert_from_japanese_text(text):
     kks = pykakasi.kakasi()

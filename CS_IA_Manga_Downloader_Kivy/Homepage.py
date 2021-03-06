@@ -87,6 +87,7 @@ class MangaInputPage(MDRelativeLayout):
         super().__init__(**kwargs)
         self.master = master
         self.input_bar = self.ids.SearchFieldID
+        self.input_bar.focus = True
         self.downloader_sites = ["manganelo", "kissmanga", "rawdevart", "senmanga"]
 
         # Side menu
@@ -99,7 +100,7 @@ class MangaInputPage(MDRelativeLayout):
         self.menu = MDDropdownMenu(caller=self.btn, items=menu_items, width_mult=4)
         self.menu.bind(on_release=self.menu_callback)
         self.add_widget(self.btn)
-        self.input_bar.focus = True
+        
 
         
     # Had to install dev version for callback to work
@@ -112,7 +113,7 @@ class MangaInputPage(MDRelativeLayout):
         
     # This method is called from the KV code, on the event: on_text_validate
     def get_manga_query_data(self):
-        jp_to_en_text = convert_from_japanese_text(self.input_bar.text.strip())
+        jp_to_en_text = convert_from_japanese_text(self.input_bar.text.strip().replace("'",""))
         downloader_sites = {"manganelo": MangaNelo, "rawdevart": RawDevArt,"kissmanga": KissManga,"senmanga": SenManga}
 
         # Instantiates appropriate downloader site with the converted text

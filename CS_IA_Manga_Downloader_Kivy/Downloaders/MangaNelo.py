@@ -77,7 +77,7 @@ class MangaNelo:
             # Downloads the images from the current chapter iteration using a thread pool
             with concurrent.futures.ThreadPoolExecutor(max_workers=12) as executor:
                 #args = [img.get('src'), title, chapter_name, page_num]
-                futures = [executor.submit(MangaNelo.download_img, img.get('src'), img.get('title')) for img in imgs_list]
+                futures = [executor.submit(MangaNelo.download_img, img.get('src'), img.get('title'), current_chapter_dir) for img in imgs_list]
                 for future in futures:
                     result = future.result()
            
@@ -90,14 +90,14 @@ class MangaNelo:
         
 
     @staticmethod
-    def download_img(img_url, title):
+    def download_img(img_url, title, chapter_dir):
         with requests.Session() as s:          
             response = s.get(img_url, headers=MangaNelo.headers, stream=True)
             filename = f"{title} + {img_url.split('/')[-1]}"
             filename = re.sub("Vol\.\d*","",filename) # This regex will remove the word vol to sort them alphabetically
             filename = re.sub(r'[\\/*?:"<>|]',"",filename) # Sanitize filename for creation
             
-            with open(filename, "wb") as f:
+            with open(os.path.join(chapter_dir, filename), "wb") as f:
                 #f.write(response.content)
                 for chunk in response.iter_content(chunk_size=1024):
                     f.write(chunk)

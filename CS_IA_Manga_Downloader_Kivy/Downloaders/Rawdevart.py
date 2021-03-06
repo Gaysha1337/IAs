@@ -39,7 +39,7 @@ class RawDevArt:
             print("Error: can't connect to Raw Dev Art")
                 
     @staticmethod
-    def download_manga(tile,title,links, *args):
+    def download_manga(tile, title, links, *args):
         master = MDApp.get_running_app()
         title = re.sub(r'[\\/*?:"<>|]',"",title) # Sanitize title name for dir/file creation
         
@@ -76,7 +76,10 @@ class RawDevArt:
             # Downloads the images from the current chapter iteration using a thread pool
             with concurrent.futures.ThreadPoolExecutor(max_workers=12) as executor:
                 #args = [img.get('src'), title, chapter_name, page_num]
-                futures = [executor.submit(RawDevArt.download_img, img.get('data-src'), title, chapter) for img in imgs_list]
+                futures = [
+                    executor.submit(RawDevArt.download_img, img.get('data-src'), title, chapter, current_chapter_dir) 
+                    for img in imgs_list
+                ]
                 for future in futures:
                     result = future.result()
             # Update the progress bar after one chapter is downloaded 
@@ -92,13 +95,14 @@ class RawDevArt:
     def trigger_call(tile,val):
         tile.progressbar.value += val
 
+
     @staticmethod
-    def download_img(img_url, title, chapter_name):
+    def download_img(img_url, title, chapter_name, chapter_dir):
         with requests.Session() as s:          
             response = s.get(img_url, stream=True)
             filename = f"{title} {chapter_name} - {img_url.split('/')[-1]}"
             filename = re.sub(r'[\\/*?:"<>|]',"",filename) # Sanitize filename for creation
             
-            with open(filename, "wb") as f:
+            with open(os.path.join(chapter_dir, filename), "wb") as f:
                 for chunk in response.iter_content(chunk_size=1024):
                     f.write(chunk)

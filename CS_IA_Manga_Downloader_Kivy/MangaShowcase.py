@@ -43,6 +43,7 @@ class MangaCoverTile(SmartTileWithLabel):
 
         # Remove thread from list since it has finished executing
         self.master.download_threads.pop(self.text) # Text is the title of the manga
+        self.master.currently_downloading = False if len(self.master.download_threads) == 0 else True
 
 # Downloaded Manga Display
 class MangaCoverContainer(ScrollView):
@@ -88,7 +89,7 @@ class MangaCoverContainer(ScrollView):
 
         if self.master.download_threads.get(title, None) == None:
             self.master.download_threads.update({title:download_thread})
-            self.master.currently_downloading = True 
+            self.master.currently_downloading = True
             tile.progressbar.opacity = 1
             
             # Creates the directory for that manga within the manga root and changes to it

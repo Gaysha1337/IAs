@@ -1,7 +1,7 @@
 [app]
 
 # (str) Title of your application
-title = MangaDownloader
+title = Manga Downloader
 
 # (str) Package name
 package.name = mangadownloader

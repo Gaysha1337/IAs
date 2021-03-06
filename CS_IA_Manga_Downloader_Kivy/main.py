@@ -176,9 +176,8 @@ class MangaDownloader(MDApp):
                 else:
                     print("Did not get all permissions")
             request_permissions([Permission.READ_EXTERNAL_STORAGE, Permission.WRITE_EXTERNAL_STORAGE], permission_callback)
-
         
-            print("Writable dir var = ", writable_dir, " writable == external storage?: ", writable_dir == primary_external_storage_path())
+            print("Writable dir var = ", writable_dir, " writable == external storage? (false = user_data_dir): ", writable_dir == primary_external_storage_path())
         # C:\Users\dimit\AppData\Roaming\mangadownloader\Manga 
         self.manga_root_dir = resource_path(os.path.join(writable_dir, "Manga"))
 
@@ -308,7 +307,7 @@ class MangaDownloader(MDApp):
                 toast("Permission Error occurred; You maybe don't have access")
             except:
                 if root_src != new_root_dst: 
-                    toast("Unknown Error: If you have moved any folders/files yourself, they will appear in the new path")
+                    toast("Unknown Error: If you have moved any folders/files yourself, they should appear in the new path, please check yourself")
 
         # Warning incase client tries to change download path while downloading a manga
         if key == "download_path" and os.path.isdir(resource_path(os.path.join(value))):

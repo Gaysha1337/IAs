@@ -4,29 +4,27 @@ from kivy.clock import Clock
 import requests, os, re, concurrent.futures
 from bs4 import BeautifulSoup
 from tqdm import tqdm
-
 if __name__ != "__main__":
-
     from utils import  download_cover_img
     
 
 # Japanese Manga Downloader
 class SenManga:
-
+    headers = {
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.75 Safari/537.36"
+        }
     def __init__(self, query=None):
         self.query_url = f"https://raw.senmanga.com/search?s={query.strip().replace(' ','+')}"
         self.popup_msg = None
         self.hasErrorOccured = False
-        self.headers = {
-            "user-agent": 
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.75 Safari/537.36"
-        }
+        
         
         try: 
             # Parsing HTML for any manga based on client's input
-            request_obj = requests.get(self.query_url, headers=self.headers)
+            request_obj = requests.get(self.query_url, headers=SenManga.headers)
             soup = BeautifulSoup(request_obj.content,features="lxml")
-            manga_divs = soup.select(".series")
+            manga_divs = soup.select(".listupd .item")
+            #print(manga_divs, manga_divs == None, manga_divs == [])
 
             # Error handling if no manga were found
             if manga_divs == None or manga_divs == []:
@@ -34,13 +32,13 @@ class SenManga:
                 self.popup_msg = f"No manga called {query} was found while searching Sen Manga"
                 manga_divs, self.manga_data = [], {}
 
-            else:                 
-                self.manga_choices = [div.find("p").text.strip() for div in manga_divs]
+            else:       
+                self.manga_choices = [div.select_one(".series-title").text.strip() for div in manga_divs]
                 self.manga_links = [div.find("a").get("href") for div in manga_divs]
                 self.manga_covers = [div.find("img").get("src") for div in manga_divs]
                 self.manga_data = dict(zip(self.manga_choices, zip(self.manga_links, self.manga_covers)))
                 
-        except:
+        except Exception as e:
             self.popup_msg = "Error: The app can't connect to the site. Check internet connection; Site may be blocked"
             self.hasErrorOccured = True
             print("Error: can't connect to Sen Manga")
@@ -57,15 +55,13 @@ class SenManga:
 
         # Parsing HTML for all the chapter links
         soup = BeautifulSoup(r.content, features="lxml")
-        chapter_divs = soup.select(".list")[1]
-        chapter_links = [
-            {"link":a.get("href"),"chapter":a.text.strip()} 
-            for a in chapter_divs.select(".list .group .element .title a")
-        ][::-1]
+        chapter_divs = soup.select(".chapter-list > li > a.series")
+        chapter_links = [{"link":a.get("href"),"chapter":a.text.strip()} for a in chapter_divs][::-1]
 
         # A progress bar that updates once a chapter is finished downloading
         progress_bar = tqdm(chapter_links, total=len(chapter_links))
         tile.progressbar.max = len(chapter_links)
+
 
         for link_dict in chapter_links:
             chapter, link = link_dict.get("chapter"), link_dict.get("link")
@@ -79,13 +75,14 @@ class SenManga:
             
             # Parse chapter's HTML for images
             current_chapter_soup = BeautifulSoup(requests.get(link, headers=SenManga.headers).content, features="lxml")
-            total_imgs_num = len([i.get("value") for i in current_chapter_soup.select_one(".page-link select").find_all("option")])
-            imgs_list = [link.replace("raw.senmanga.com", "delivery.senmanga.com/viewer") + "/" + str(img_num) for img_num in range(1,total_imgs_num + 1) ]
+            total_imgs_num = int(current_chapter_soup.select(".page-list option")[-1].get("value"))
 
+            imgs_list = [link.replace("raw.senmanga.com", "raw.senmanga.com/viewer") + "/" + str(img_num + 1) for img_num in range(total_imgs_num) ]
+            
             # Downloads the images from the current chapter iteration using a thread pool
             with concurrent.futures.ThreadPoolExecutor(max_workers=12) as executor:
                 #args = [img.get('src'), title, chapter_name, page_num]
-                futures = [executor.submit(SenManga.download_img, img_url=img, title=title, chapter_name=chapter) for page_num, img in enumerate(imgs_list)]
+                futures = [executor.submit(SenManga.download_img, img_url, title, chapter, current_chapter_dir) for img_url in imgs_list]
                 for future in futures:
                     result = future.result()
 
@@ -97,14 +94,13 @@ class SenManga:
         Clock.schedule_once(lambda *args: tile.reset_progressbar(), 1)     
 
     @staticmethod
-    def download_img(img_url, title, chapter_name):
+    def download_img(img_url, title, chapter_name, chapter_dir):
         with requests.Session() as s:          
             response = s.get(img_url, headers=SenManga.headers, stream=True)
             filename = f"{title} {chapter_name} - {img_url.split('/')[-1]}.jpg"
             filename = re.sub(r'[\\/*?:"<>|]',"",filename) # Sanitize filename for creation
             
-            with open(filename, "wb") as f:
-                #f.write(response.content)
+            with open(os.path.join(chapter_dir,filename), "wb") as f:
                 for chunk in response.iter_content(chunk_size=1024):
                     f.write(chunk)
             

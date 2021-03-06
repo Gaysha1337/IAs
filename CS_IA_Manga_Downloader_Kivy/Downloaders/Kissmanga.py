@@ -6,7 +6,8 @@ from kivy.clock import Clock
 from kivymd.toast import toast
 from kivymd.app import MDApp
 
-from utils import download_cover_img, download_image
+if __name__ != "__main__":
+    from utils import download_cover_img, download_image
 
 # English Manga Downloader
 class KissManga:
@@ -33,13 +34,13 @@ class KissManga:
                 self.popup_msg = f"No manga called {query} was found while searching Kiss Manga"
                 manga_divs, self.manga_data = [], {}
 
-            else:               
+            else:              
                 self.manga_choices = [a.text.strip() for a in manga_divs]
                 self.manga_links = ["https://kissmanga.org" + a.get("href") for a in manga_divs]
                 self.manga_covers = [KissManga.get_cover_img(a) for a in self.manga_links]
                 self.manga_data = dict(zip(self.manga_choices, zip(self.manga_links, self.manga_covers)))
             
-        except:
+        except Exception as e:
             self.popup_msg = "Error: The app can't connect to Kiss Manga. Check internet connection; Site may be blocked"
             self.hasErrorOccured = True
             print("Error: can't connect to Kiss Manga")
@@ -84,7 +85,7 @@ class KissManga:
 
             # Downloads the images from the current chapter iteration using a thread pool
             with concurrent.futures.ThreadPoolExecutor(max_workers=12) as executor:
-                futures = [executor.submit(KissManga.download_img, img.get('src'), title, chapter_name, page_num) for page_num, img in enumerate(imgs_list)]
+                futures = [executor.submit(KissManga.download_img, img.get('src'), title, chapter_name, page_num, current_chapter_dir) for page_num, img in enumerate(imgs_list)]
                 for future in futures:
                     result = future.result()
 
@@ -102,7 +103,7 @@ class KissManga:
         tile.progressbar.value+= val
 
     @staticmethod
-    def download_img(img_url, title, chapter_name, page_num):
+    def download_img(img_url, title, chapter_name, page_num, chapter_dir):
         with requests.Session() as s:          
             response = s.get(img_url, stream=True)
             filename = f"{title} {chapter_name} - {page_num + 1} .{img_url.split('.')[-1]}"
@@ -110,7 +111,9 @@ class KissManga:
             filename = re.sub("Vol\.\d*","",filename)
             filename = re.sub(r'[\\/*?:"<>|]',"",filename) # Sanitize filename for creation
             
-            with open(filename, "wb") as f:
+            with open(os.path.join(chapter_dir,filename), "wb") as f:
                 for chunk in response.iter_content(chunk_size=1024):
                     f.write(chunk) 
 
+if __name__ == "__main__":
+    test = KissManga("uma musume")
