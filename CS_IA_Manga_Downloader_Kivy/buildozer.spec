@@ -16,7 +16,7 @@ source.dir = .
 #source.include_exts = py,png,jpg,kv,atlas,ini,ttf, otf
 
 # (list) List of inclusions using pattern matching
-#source.include_patterns = assets/*,images/*.png, DATA/*
+source.include_patterns = assets/*,images/*.png, DATA/*
 
 # (list) Source files to exclude (let empty to not exclude anything)
 #source.exclude_exts = spec
@@ -123,7 +123,7 @@ android.permissions = INTERNET, WRITE_EXTERNAL_STORAGE , READ_EXTERNAL_STORAGE
 # (bool) If True, then skip trying to update the Android sdk
 # This can be useful to avoid excess Internet downloads or save time
 # when an update is due and you just want to test/build your package
-android.skip_update = True
+android.skip_update = False
 
 # (bool) If True, then automatically accept SDK license
 # agreements. This is intended for automation only. If set to False,

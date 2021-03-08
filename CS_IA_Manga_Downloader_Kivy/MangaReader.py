@@ -10,7 +10,7 @@ from kivy.properties import ObjectProperty
 from kivy.uix.carousel import Carousel
 from kivy.uix.scatter import Scatter, ScatterPlane
 from kivy.uix.scatterlayout import ScatterLayout
-from kivy.uix.image import Image
+from kivy.uix.image import Image, AsyncImage
 from kivy.uix.scrollview import ScrollView
 from kivymd.uix.label import MDLabel
 from kivymd.uix.button import MDIconButton, MDRectangleFlatButton
@@ -26,6 +26,49 @@ from kivy.uix.scatterlayout import ScatterLayout
 # Utils and Properties
 from utils import resource_path, kill_screen
 from kivy.utils import platform
+
+# Used for debugging image code
+class MangaImage(Image):
+    def __init__(self, source, keep_ratio, allow_stretch, **kwargs):
+        super().__init__(**kwargs)
+        self.source = source
+        self.keep_ratio = keep_ratio
+        self.allow_stretch = allow_stretch
+
+    def texture_update(self, *largs):
+        from kivy.logger import Logger
+        from kivy.resources import resource_find
+        if not self.source:
+            self._clear_core_image()
+            return
+        source = resource_find(self.source)
+        # Added by me
+        if not source:
+            Logger.error('Image: Not found <%s>' % self.source)
+            self._clear_core_image()
+            return
+        if self._coreimage:
+            self._coreimage.unbind(on_texture=self._on_tex_change)
+        try:
+            from kivy.core.image import Image as CoreImage
+            self._coreimage = image = CoreImage(
+                source,
+                mipmap=self.mipmap,
+                anim_delay=self.anim_delay,
+                keep_data=self.keep_data,
+                nocache=self.nocache
+            )
+        except Exception as e:
+            Logger.error('Image: Error loading <%s>' % self.source)
+            Logger.debug(f"Exception: {e}")
+            self._clear_core_image()
+            image = self._coreimage
+        if image:
+            image.bind(on_texture=self._on_tex_change)
+            self.texture = image.texture
+
+
+
 
 class MangaReaderChapterSelection(ScrollView):
     def __init__(self, master, title, manga_path, **kwargs):
@@ -55,19 +98,29 @@ class MangaReaderChapterSelection(ScrollView):
             self.grid.add_widget(self.chapter_btn)
         self.add_widget(self.grid)
 
+
 class ZoomableImage(ScatterPlane):
     def __init__(self, image_src, **kwargs):
         super().__init__(**kwargs)
         Window.bind(on_resize=Clock.schedule_once(self.center_it))
-        self.image_src = resource_path(image_src)
+        self.image_src = image_src
         self.do_translation = self.do_rotation = False 
         self.do_scale = True 
         self.scale = self.scale_min= 5
         self.scale_max= 16
         self.size_hint=(None,None)
-        self.add_widget(Image(source = resource_path(self.image_src), keep_ratio = False, allow_stretch = True, nocache=True))
+        self.manga_img = MangaImage(source = self.image_src, keep_ratio = False, allow_stretch = True, nocache=True)
+        
+        if platform == "android":
+            try:
+                print("image reloaded")
+                self.manga_img.remove_from_cache()
+                self.manga_img.reload()
+            except Exception as e:
+                print("Image Reload Exception: ", e)
         
         Clock.schedule_once(self.center_it)
+        self.add_widget(self.manga_img)
 
     def center_it(self, inst):
         self.center = self.parent.center
@@ -101,17 +154,17 @@ class MangaReaderCarouselContainer(AnchorLayout):
         self.master = master
         self.manga_title = manga_title
         self.chapter_name = chapter_name
-        self.chapter_path = chapter_path
+        self.chapter_path = resource_path(chapter_path)
         self.padding=("0dp", "100dp", "0dp", "20dp") # padding: [padding_left, padding_top, padding_right, padding_bottom]
         
         self.chapter_imgs = os_sorted([
-            resource_path(img) for img in glob(os.path.join(self.chapter_path, "*")) 
-            if os.path.isfile(resource_path(img)) and not resource_path(img).endswith(".txt")    
+            resource_path(img) for img in glob(os.path.join(self.chapter_path, "*.jpg")) 
+            if os.path.isfile(resource_path(img))    
         ])
 
         # Debug:
         if platform == "android":
-            print(f"Chapter images of {self.manga_title}: {self.chapter_imgs}")
+            print(f"Chapter images of {self.manga_title}: {self.chapter_imgs}")                
         
         self.swiping_direction = "left" if self.master.manga_swiping_direction == "Left to Right (Japanese style)" else "right"
         self.reading_direction = "bottom" if self.master.manga_reading_direction == "Scroll vertically" else self.swiping_direction
@@ -121,17 +174,14 @@ class MangaReaderCarouselContainer(AnchorLayout):
         
         
         for index, img in enumerate(self.chapter_imgs):
-            self.scatter = ZoomableImage(image_src=str(img))
+            self.scatter = ZoomableImage(image_src=resource_path(img))
 
             self.inner_carousel_layout = MDRelativeLayout()#size=self.scatter.size)
             self.inner_carousel_layout.add_widget(MDLabel(text=f"Page {index + 1}/{len(self.chapter_imgs)}", pos_hint={"top":.6}))
             
             self.inner_carousel_layout.add_widget(self.scatter)
             self.carousel.add_widget(self.inner_carousel_layout)
-     
-            #self.prev_btn = MDIconButton(icon="menu-left", user_font_size ="200sp", on_release = lambda *x:self.turn_page(self.carousel.load_previous), pos_hint={"center_x":.1, "center_y":.5}) 
-            #self.next_btn = MDIconButton(icon="menu-right", user_font_size ="200sp", on_release = lambda *x:self.turn_page(self.carousel.load_next), pos_hint={"center_x":.9, "center_y":.5})
-
+    
             self.prev_btn = MDIconButton(icon="menu-left", user_font_size ="200sp", on_release = lambda *x :self.carousel.load_previous(), pos_hint={"center_x":.1, "center_y":.5}) 
             self.next_btn = MDIconButton(icon="menu-right", user_font_size ="200sp", on_release = lambda *x:self.carousel.load_next(), pos_hint={"center_x":.9, "center_y":.5})
             
@@ -140,26 +190,18 @@ class MangaReaderCarouselContainer(AnchorLayout):
             if self.swiping_direction == "left" and self.reading_direction != "bottom":
                 self.prev_btn = MDIconButton(icon="menu-left", user_font_size ="200sp", on_release = lambda *x:self.carousel.load_next(), pos_hint={"center_x":.1, "center_y":.5}) 
                 self.next_btn = MDIconButton(icon="menu-right", user_font_size ="200sp", on_release = lambda *x:self.carousel.load_previous(), pos_hint={"center_x":.9, "center_y":.5}) 
-                #self.prev_btn = MDIconButton(icon="menu-left", user_font_size ="200sp", on_release = lambda *x:self.turn_page(self.carousel.load_next), pos_hint={"center_x":.1, "center_y":.5}) 
-                #self.next_btn = MDIconButton(icon="menu-right", user_font_size ="200sp", on_release = lambda *x:self.turn_page(self.carousel.load_previous), pos_hint={"center_x":.9, "center_y":.5}) 
 
             if platform != "android": 
                 self.inner_carousel_layout.add_widget(self.prev_btn)
                 self.inner_carousel_layout.add_widget(self.next_btn)
 
-        #self.carousel.bind(on_index = self.turn)
         self.add_widget(self.carousel)
 
     # Resets the image's zoom whenever a new page is loaded
     def turn_page(self, callback ,*args, **kwargs):
-        print(f"args: {args} \n kwargs: {kwargs}")
-        print(self.carousel, " carousel ")
         for child in self.carousel.current_slide.walk_reverse(loopback=True):
             if isinstance(child, ZoomableImage):
-                print("child: ",child, "scale before: ", child.scale)
-                child.scale = child.scale_min
-                print("child.scale after: ", child.scale, "min scale: ", child.scale_min)
-                
+                child.scale = child.scale_min                
         callback()
         
         

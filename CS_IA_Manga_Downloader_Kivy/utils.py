@@ -1,5 +1,6 @@
 #from MangaScreen import MangaScreen
 from functools import partial
+from glob import glob
 import os, pathlib, json, requests, re, shutil, sys
 from kivy.clock import Clock
 from kivymd.uix.button import MDFlatButton
@@ -114,9 +115,14 @@ def create_language_dirs(language_dirs:list):
 
 # Recursive function to move all manga from `src_dir` to `dest_dir`
 def move_manga_root(src_dir, dest_dir):
-    fileList = os.listdir(src_dir)
+    #fileList = os.listdir(src_dir)
+    manga_root_dir_contents = ['Raw Japanese Manga', 'English Manga', 'DO NOT MOVE THE ROOT DIRECTLY, USE THE SETTINGS.txt']
+    fileList = [path for path in os.listdir(src_dir) if path in manga_root_dir_contents]
+    print(fileList, "fileList \n")
+    
     for i in fileList:
         src, dest = resource_path(os.path.join(src_dir, i)), resource_path(os.path.join(dest_dir, i))
+        #print("src: ", src, "dest", dest, sep="\n")
         if os.path.exists(dest):
             if os.path.isdir(dest):
                 move_manga_root(src, dest)
@@ -124,6 +130,7 @@ def move_manga_root(src_dir, dest_dir):
             else:
                 os.remove(dest)
         shutil.move(src, dest_dir)
+    
 
 def create_manga_dirs(downloader, title):    
     master = MDApp.get_running_app()
@@ -182,7 +189,12 @@ def convert_from_japanese_text(text):
 
 if __name__ == "__main__":
 
-    l = input("type anything") #"可愛い"
-    print(convert_from_japanese_text(l))
+    #l = input("type anything") #"可愛い"
+    #print(convert_from_japanese_text(l))
+
+    src = "/home/dimitriy/.config/mangadownloader/Manga"
+    dest = "/home/dimitriy/.config/mangadownloader"
+    move_manga_root(src, dest)
+
     
 

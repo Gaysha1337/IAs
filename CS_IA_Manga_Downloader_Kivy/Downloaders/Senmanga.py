@@ -4,8 +4,8 @@ from kivy.clock import Clock
 import requests, os, re, concurrent.futures
 from bs4 import BeautifulSoup
 from tqdm import tqdm
-if __name__ != "__main__":
-    from utils import  download_cover_img
+
+from utils import  download_cover_img, resource_path
     
 
 # Japanese Manga Downloader
@@ -24,7 +24,6 @@ class SenManga:
             request_obj = requests.get(self.query_url, headers=SenManga.headers)
             soup = BeautifulSoup(request_obj.content,features="lxml")
             manga_divs = soup.select(".listupd .item")
-            #print(manga_divs, manga_divs == None, manga_divs == [])
 
             # Error handling if no manga were found
             if manga_divs == None or manga_divs == []:
@@ -48,8 +47,10 @@ class SenManga:
         master = MDApp.get_running_app()
         title = re.sub(r'[\\/*?:"<>|]',"",title) # Sanitize title name for dir/file creation
         
-        manga_download_link, cover_img_link = links       
-        download_cover_img(cover_img_link, cover_img_link.split("/")[-1])
+        manga_download_link, cover_img_link = links
+        cover_img_filename = os.path.join(master.japanese_manga_dir,title, cover_img_link.split("/")[-1])
+        download_cover_img(cover_img_link, resource_path(cover_img_filename))       
+
         #headers = {"user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.75 Safari/537.36"}
         r = requests.get(manga_download_link, headers=SenManga.headers)
 

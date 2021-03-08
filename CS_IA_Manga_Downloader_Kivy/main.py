@@ -8,6 +8,9 @@ Config.set("network","useragent",_USERAGENT)
 Config.set('kivy', 'exit_on_escape', '0')
 #Config.set('kivy', 'keyboard_mode', 'systemanddock')
 #Config.set('kivy', 'keyboard_mode', 'dock')
+os.environ['KIVY_IMAGE'] = 'pil,sdl2'
+
+from kivy.config import Config
 
 # Kivy
 from kivymd.app import MDApp
@@ -76,6 +79,7 @@ class MangaDownloader(MDApp):
  
     def __init__(self):
         super().__init__()
+        
         # Android related
         writable_dir = resource_path(self.user_data_dir)
 
@@ -83,17 +87,17 @@ class MangaDownloader(MDApp):
         if platform == "android":
             from android.permissions import request_permissions, Permission
             from android.storage import primary_external_storage_path
+            
 
             # https://www.youtube.com/watch?v=okpiDnSR4z8
             def permission_callback(permission, results):
                 if all([result for result in results]):
                     print("Got all permissions, writable dir = ", primary_external_storage_path())
-                    writable_dir = primary_external_storage_path() 
                 else:
                     print("Did not get all permissions")
             request_permissions([Permission.READ_EXTERNAL_STORAGE, Permission.WRITE_EXTERNAL_STORAGE], permission_callback)
+            writable_dir = primary_external_storage_path()
 
-        
             print("Writable dir var = ", writable_dir, " writable == external storage?: ", writable_dir == primary_external_storage_path())
         # C:\Users\dimit\AppData\Roaming\mangadownloader\Manga 
         self.manga_root_dir = resource_path(os.path.join(writable_dir, "Manga"))
@@ -106,7 +110,8 @@ class MangaDownloader(MDApp):
             'manga_reading_direction': 'Swipe Horizontally', # Defaults to reading horizontally (swiping)
             'manga_swiping_direction':"Right to Left (English style)" # Defaults to English style: left to right
         }
-        
+
+    
     # Build the settings and sets their default values
     def build_config(self, config):
         config.setdefaults('Settings', self.default_settings_vals)
@@ -114,7 +119,13 @@ class MangaDownloader(MDApp):
     # This defines the path and name where the .ini file is located
     # On android, the client wont be able to view the config file with a file explorer
     def get_application_config(self):
-        return str(os.path.join(self.user_data_dir, 'mangadownloader.ini'))
+        from glob import glob
+        #return str(os.path.join(self.user_data_dir, 'mangadownloader.ini'))
+        if platform == "android":
+            for log in glob('*.ini'):
+                os.remove(log)
+
+        return str(os.path.join(self.manga_root_dir, 'mangadownloader.ini'))
      
     def build_settings(self, settings):
         settings.add_json_panel('Manga Downloader Settings', self.config, data=AppSettings.json_settings)
@@ -159,39 +170,7 @@ class MangaDownloader(MDApp):
 
     def on_start(self, **kwargs):
         self.current_screen = self.screen_manager.get_screen(self.screen_manager.current)
-
-        # Android related
-        writable_dir = resource_path(self.user_data_dir)
-
-        # Import android permissions:
-        if platform == "android":
-            from android.permissions import request_permissions, Permission
-            from android.storage import primary_external_storage_path
-
-            # https://www.youtube.com/watch?v=okpiDnSR4z8
-            def permission_callback(permission, results):
-                if all([result for result in results]):
-                    print("Got all permissions, writable dir = ", primary_external_storage_path())
-                    writable_dir = primary_external_storage_path() 
-                else:
-                    print("Did not get all permissions")
-            request_permissions([Permission.READ_EXTERNAL_STORAGE, Permission.WRITE_EXTERNAL_STORAGE], permission_callback)
         
-            print("Writable dir var = ", writable_dir, " writable == external storage? (false = user_data_dir): ", writable_dir == primary_external_storage_path())
-        # C:\Users\dimit\AppData\Roaming\mangadownloader\Manga 
-        self.manga_root_dir = resource_path(os.path.join(writable_dir, "Manga"))
-
-        print(f"[LOG]: {self.manga_root_dir}")
-
-        self.default_settings_vals = {
-            'theme_mode':'Dark',
-            'color_scheme':'Pink',
-            'default_downloader': "rawdevart",
-            'download_path': resource_path(self.manga_root_dir),
-            'manga_reading_direction': 'Swipe Horizontally', # Defaults to reading horizontally (swiping)
-            'manga_swiping_direction':"Right to Left (English style)" # Defaults to English style: left to right
-        }
-
         # The path where all manga will be downloaded to (default is manga root)
         # If it is changed while a manga is being downloaded an error will pop up
         self.download_path = resource_path(self.config.get("Settings", "download_path"))
@@ -205,6 +184,16 @@ class MangaDownloader(MDApp):
         if not os.path.exists(self.manga_root_dir):
             create_root_dir(self.manga_root_dir)
             create_language_dirs([self.english_manga_dir,self.japanese_manga_dir])
+
+        #os.path.expanduser("~") + "mangadownloader"
+        """ Sets the path to the log file. """
+        #plyer.get_external_storage_dir() ; plyer.storagepath.get_external_storage_dir()
+        log_path = resource_path(os.path.join(self.manga_root_dir, 'logs'))
+
+        if not os.path.exists(log_path):
+            os.makedirs(log_path)
+        Config.set('kivy', 'log_dir', log_path)
+        Config.write()
             
 
     # Android Methods
@@ -298,6 +287,7 @@ class MangaDownloader(MDApp):
         """ 
         def change_download_path(value=value):
             root_src, new_root_dst = resource_path(self.download_path), resource_path(value)
+            print("root_src: ", root_src, "new_root_dst: ", new_root_dst, sep="\n")
             try:
                 # Recursive function to move the english and Japanese manga containing folders to the new destination
                 move_manga_root(root_src, new_root_dst)
@@ -305,7 +295,8 @@ class MangaDownloader(MDApp):
                 toast(f"Manga Download Path has been changed to {self.manga_root_dir}")
             except PermissionError: 
                 toast("Permission Error occurred; You maybe don't have access")
-            except:
+            except Exception as e:
+                print("Exception: ", e)
                 if root_src != new_root_dst: 
                     toast("Unknown Error: If you have moved any folders/files yourself, they should appear in the new path, please check yourself")
 

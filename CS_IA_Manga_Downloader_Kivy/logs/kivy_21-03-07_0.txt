@@ -1,0 +1,13 @@
+[INFO   ] Logger: Record log in /home/dimitriy/Desktop/CS_IA_Manga_Downloader_Kivy/logs/kivy_21-03-07_0.txt
+[INFO   ] KivyMD: 0.104.2.dev0, git-Unknown, 2020-10-27 (installed at "/home/dimitriy/.local/lib/python3.8/site-packages/kivymd/__init__.py")
+[INFO   ] GL: NPOT texture support is available
+[INFO   ] ProbeSysfs: device match: /dev/input/event9
+[INFO   ] MTD: Read event from </dev/input/event9>
+[INFO   ] ProbeSysfs: device match: /dev/input/event7
+[INFO   ] MTD: Read event from </dev/input/event7>
+[INFO   ] ProbeSysfs: device match: /dev/input/event10
+[INFO   ] MTD: Read event from </dev/input/event10>
+[INFO   ] Base: Start application main loop
+[WARNING] MTD: Unable to open device "/dev/input/event9". Please ensure you have the appropriate permissions.
+[WARNING] MTD: Unable to open device "/dev/input/event7". Please ensure you have the appropriate permissions.
+[WARNING] MTD: Unable to open device "/dev/input/event10". Please ensure you have the appropriate permissions.

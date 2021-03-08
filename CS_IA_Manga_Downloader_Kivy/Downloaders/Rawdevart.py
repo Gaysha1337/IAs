@@ -5,7 +5,7 @@ import requests, os, re, concurrent.futures
 from bs4 import BeautifulSoup
 from tqdm import tqdm
 
-from utils import download_cover_img
+from utils import download_cover_img, resource_path
 
 
 # Japanese Manga Downloader
@@ -43,8 +43,10 @@ class RawDevArt:
         master = MDApp.get_running_app()
         title = re.sub(r'[\\/*?:"<>|]',"",title) # Sanitize title name for dir/file creation
         
-        manga_download_link, cover_img_link = links               
-        download_cover_img(cover_img_link, cover_img_link.split("/")[-1])
+        manga_download_link, cover_img_link = links
+        cover_img_filename = os.path.join(master.japanese_manga_dir,title, cover_img_link.split("/")[-1])
+        download_cover_img(cover_img_link, resource_path(cover_img_filename))               
+        
 
         soup = BeautifulSoup(requests.get(manga_download_link).content, features="lxml")
 
