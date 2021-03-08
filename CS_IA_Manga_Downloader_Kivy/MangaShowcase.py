@@ -79,22 +79,19 @@ class MangaCoverContainer(ScrollView):
         self.add_widget(self.outer_gird)
 
     # Note: the param tile acts as a button instance
-    #@mainthread
     def make_request(self,title,tile):
-        
-
         # Calls the appropriate downloader based on the selected site and starts a thread to prevent kivy event loop from locking
         download_thread_target = partial(self.downloader_links_methods.get(self.master.downloader), tile, title, self.manga_data.get(title))
-        download_thread = Thread(name=f"Download Thread {title}",target=download_thread_target)        
+        download_thread = Thread(name=f"Download Thread {title}",target=download_thread_target)
 
-        if self.master.download_threads.get(title, None) == None:
+        # Flag used to ensure that the same manga is not downloaded while it is already being downloaded
+        if self.master.download_threads.get(title, None) == None: # If a manga is already being downloaded it will not return None
             self.master.download_threads.update({title:download_thread})
             self.master.currently_downloading = True
             tile.progressbar.opacity = 1
             
             # Creates the directory for that manga within the manga root and changes to it
             create_manga_dirs(self.master.downloader, title)
-
             download_thread.start()
         else:
             display_message(f"{title} is already downloading")

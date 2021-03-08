@@ -27,49 +27,6 @@ from kivy.uix.scatterlayout import ScatterLayout
 from utils import resource_path, kill_screen
 from kivy.utils import platform
 
-# Used for debugging image code
-class MangaImage(Image):
-    def __init__(self, source, keep_ratio, allow_stretch, **kwargs):
-        super().__init__(**kwargs)
-        self.source = source
-        self.keep_ratio = keep_ratio
-        self.allow_stretch = allow_stretch
-
-    def texture_update(self, *largs):
-        from kivy.logger import Logger
-        from kivy.resources import resource_find
-        if not self.source:
-            self._clear_core_image()
-            return
-        source = resource_find(self.source)
-        # Added by me
-        if not source:
-            Logger.error('Image: Not found <%s>' % self.source)
-            self._clear_core_image()
-            return
-        if self._coreimage:
-            self._coreimage.unbind(on_texture=self._on_tex_change)
-        try:
-            from kivy.core.image import Image as CoreImage
-            self._coreimage = image = CoreImage(
-                source,
-                mipmap=self.mipmap,
-                anim_delay=self.anim_delay,
-                keep_data=self.keep_data,
-                nocache=self.nocache
-            )
-        except Exception as e:
-            Logger.error('Image: Error loading <%s>' % self.source)
-            Logger.debug(f"Exception: {e}")
-            self._clear_core_image()
-            image = self._coreimage
-        if image:
-            image.bind(on_texture=self._on_tex_change)
-            self.texture = image.texture
-
-
-
-
 class MangaReaderChapterSelection(ScrollView):
     def __init__(self, master, title, manga_path, **kwargs):
         super().__init__(**kwargs)
@@ -109,15 +66,9 @@ class ZoomableImage(ScatterPlane):
         self.scale = self.scale_min= 5
         self.scale_max= 16
         self.size_hint=(None,None)
-        self.manga_img = MangaImage(source = self.image_src, keep_ratio = False, allow_stretch = True, nocache=True)
-        
-        if platform == "android":
-            try:
-                print("image reloaded")
-                self.manga_img.remove_from_cache()
-                self.manga_img.reload()
-            except Exception as e:
-                print("Image Reload Exception: ", e)
+
+        self.manga_img = Image(source = self.image_src, keep_ratio = False, allow_stretch = True)
+        self.size = self.manga_img.size
         
         Clock.schedule_once(self.center_it)
         self.add_widget(self.manga_img)
@@ -203,6 +154,3 @@ class MangaReaderCarouselContainer(AnchorLayout):
             if isinstance(child, ZoomableImage):
                 child.scale = child.scale_min                
         callback()
-        
-        
-                

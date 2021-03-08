@@ -14,7 +14,7 @@ from kivymd.toast import toast
 import pykakasi # Used for converting Japanese Kana to Romanji
 
 class ConfirmationDialog(MDDialog):
-    def __init__(self, title, text, proceed_button_callback,**kwargs):
+    def __init__(self, title, text, proceed_button_callback, **kwargs):
         self.master = MDApp.get_running_app()
         self.title = title
         self.text = text
@@ -27,21 +27,25 @@ class ConfirmationDialog(MDDialog):
         # Parent constructor is here to create the buttons; DO NOT MOVE!
         super().__init__(**kwargs)
 
+def show_confirmation_dialog(title, text, proceed_callback, cancel_callback = MDDialog.dismiss):
+    master = MDApp.get_running_app()
+    master.dialog = None
+    if not master.dialog: 
+        master.dialog = ConfirmationDialog(title=title, text=text, proceed_button_callback=proceed_callback)
+    master.dialog.open()
+    return master.dialog
 
 
 def display_message(msg):
     toast(text=msg)
     print(msg)
 
-
 def resource_path(relative_path):
     # Get absolute path to resource, works for dev and for PyInstaller
     base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
     return os.path.join(base_path, relative_path)
 
-
 """ Screen Methods"""
-
 def create_screen(name, prev_screen, content, *args, **kwargs):
     from MangaScreen import MangaScreen
     screen = MangaScreen(name=name, prev_screen=prev_screen)
@@ -65,12 +69,6 @@ def kill_screen(screen_name, reload_func, *args):
         Clock.schedule_once(partial(reload_func))
     Clock.schedule_once(partial(switch_to_screen, screen_name))
 
-def show_confirmation_dialog(title, text, proceed_callback):
-    master = MDApp.get_running_app()
-    master.dialog = None
-    if not master.dialog: 
-        master.dialog = ConfirmationDialog(title = title, text = text, proceed_button_callback = proceed_callback)
-    master.dialog.open()
 
 
 """ Downloading Functions """
@@ -92,7 +90,7 @@ def create_root_dir(manga_root_dir):
     # Makes a "root" folder to store all your downloaded manga
     if not os.path.isdir(manga_root_dir):
         os.mkdir(manga_root_dir)
-        display_message(f"Manga root made in {manga_root_dir}")
+        #display_message(f"Manga root made in {manga_root_dir}")
         filename = os.path.join(manga_root_dir, "DO NOT MOVE THE ROOT DIRECTLY, USE THE SETTINGS.txt")
 
         with open(filename, "w") as f:
@@ -107,7 +105,7 @@ def create_language_dirs(language_dirs:list):
     for d in language_dirs:
         if not os.path.isdir(d):
             os.mkdir(d)
-            display_message("Folders for english and japanese manga have been made")
+            display_message("Manga root folder Created and folders for english and japanese manga have been made")
         else:
             print(f"{d} already exists")
 
@@ -116,9 +114,8 @@ def create_language_dirs(language_dirs:list):
 # Recursive function to move all manga from `src_dir` to `dest_dir`
 def move_manga_root(src_dir, dest_dir):
     #fileList = os.listdir(src_dir)
-    manga_root_dir_contents = ['Raw Japanese Manga', 'English Manga', 'DO NOT MOVE THE ROOT DIRECTLY, USE THE SETTINGS.txt']
+    manga_root_dir_contents = ['Raw Japanese Manga', 'English Manga', 'logs','DO NOT MOVE THE ROOT DIRECTLY, USE THE SETTINGS.txt']
     fileList = [path for path in os.listdir(src_dir) if path in manga_root_dir_contents]
-    print(fileList, "fileList \n")
     
     for i in fileList:
         src, dest = resource_path(os.path.join(src_dir, i)), resource_path(os.path.join(dest_dir, i))
@@ -167,6 +164,8 @@ def create_manga_dirs(downloader, title):
     """
     #display_message(f"A folder for {title.capitalize()} has been made in {current_manga_dir}")
 
+
+# Text input conversion
 def convert_from_japanese_text(text):
     kks = pykakasi.kakasi()
     kks.setMode("H","a") # Hiragana to ascii, default: no conversion

@@ -48,7 +48,7 @@ class SenManga:
         title = re.sub(r'[\\/*?:"<>|]',"",title) # Sanitize title name for dir/file creation
         
         manga_download_link, cover_img_link = links
-        cover_img_filename = os.path.join(master.japanese_manga_dir,title, cover_img_link.split("/")[-1])
+        cover_img_filename = os.path.join(master.japanese_manga_dir,title, os.path.basename(cover_img_link))
         download_cover_img(cover_img_link, resource_path(cover_img_filename))       
 
         #headers = {"user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.75 Safari/537.36"}

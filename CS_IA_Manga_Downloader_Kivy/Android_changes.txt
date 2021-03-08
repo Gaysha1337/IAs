@@ -4,6 +4,7 @@
 
 - Loading images in Carousel, some are white:
     - Possibly fixed white images appearing on android, by adding resource_path
+    - Fix: Add "pil" image provider at top of main.py
 
 - Carousel Images position are not resetting:
     - Fixed: 
@@ -14,4 +15,4 @@
     - If on landing page, it wont prompt you about exiting the app
 
 - Android: Downloading more than one manga leads to incorrect paths:
-    - Fixed: using thread dictionary
+    - Fixed: using thread dictionary and supplying absolute paths

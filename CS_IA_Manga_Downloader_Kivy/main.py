@@ -1,21 +1,20 @@
 # -*- coding: utf-8 -*-
 import os, sys, plyer
-from kivy.uix.settings import Settings
+from plyer.facades.storagepath import StoragePath
 
+# This needs to be here to display the manga images on Android
+os.environ['KIVY_IMAGE'] = 'pil,sdl2'
+
+from kivy.uix.settings import Settings
 from kivy.config import Config
 _USERAGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.121 Safari/537.36"
 Config.set("network","useragent",_USERAGENT)
 Config.set('kivy', 'exit_on_escape', '0')
-#Config.set('kivy', 'keyboard_mode', 'systemanddock')
-#Config.set('kivy', 'keyboard_mode', 'dock')
-os.environ['KIVY_IMAGE'] = 'pil,sdl2'
-
-from kivy.config import Config
 
 # Kivy
 from kivymd.app import MDApp
 from kivy.clock import Clock
-from kivy.properties import StringProperty, DictProperty, BooleanProperty, ObjectProperty, ListProperty
+from kivy.properties import StringProperty, DictProperty, BooleanProperty, ObjectProperty
 from kivy.resources import resource_add_path
 from kivy.lang import Builder
 from settings import AppSettings
@@ -26,11 +25,9 @@ from kivy.core.window import Window, Keyboard
 # Widgets
 from kivymd.toast  import toast
 from kivymd.uix.dialog import MDDialog
-from kivymd.uix.textfield import MDTextField
 
 # Screens and Screen-related
-from kivy.uix.screenmanager import Screen, ScreenManager
-from MangaScreen import MangaScreen
+from kivy.uix.screenmanager import ScreenManager
 from Homepage import MangaInputPage, LandingPage, MangaReadingPage, DownloadedMangaDisplay
 from MangaShowcase import MangaCoverContainer
 from MangaReader import MangaReaderChapterSelection, MangaReaderCarouselContainer # This will be a carousel for swiping pages
@@ -77,40 +74,45 @@ class MangaDownloader(MDApp):
 
     download_threads = DictProperty({})
  
-    def __init__(self):
-        super().__init__()
-        
-        # Android related
-        writable_dir = resource_path(self.user_data_dir)
+    def __init__(self, *args, **kwargs):
+        super().__init__(**kwargs)
 
-        # Import android permissions:
+        """
+        When the app is about to be built, the client will need to grant permissions for the program to write
+        and write to any 'external storage'. 
+        """
+
+        # Get android permissions to read and write to external storage
         if platform == "android":
-            from android.permissions import request_permissions, Permission
-            from android.storage import primary_external_storage_path
+            from android.permissions import request_permissions, Permission, check_permission
+            #from android.storage import primary_external_storage_path
             
-
             # https://www.youtube.com/watch?v=okpiDnSR4z8
             def permission_callback(permission, results):
                 if all([result for result in results]):
-                    print("Got all permissions, writable dir = ", primary_external_storage_path())
+                    print("Got all permissions")# ,writable dir = ", primary_external_storage_path())
                 else:
                     print("Did not get all permissions")
-            request_permissions([Permission.READ_EXTERNAL_STORAGE, Permission.WRITE_EXTERNAL_STORAGE], permission_callback)
-            writable_dir = primary_external_storage_path()
 
-            print("Writable dir var = ", writable_dir, " writable == external storage?: ", writable_dir == primary_external_storage_path())
+            # Ensures that the permissions are checked before proceeding
+            while not(check_permission(Permission.WRITE_EXTERNAL_STORAGE) and check_permission(Permission.READ_EXTERNAL_STORAGE)):
+                print("Both perms granted?: ", check_permission(Permission.WRITE_EXTERNAL_STORAGE) and check_permission(Permission.READ_EXTERNAL_STORAGE))
+                request_permissions([Permission.READ_EXTERNAL_STORAGE, Permission.WRITE_EXTERNAL_STORAGE], permission_callback)
+            
+        self.manga_root_dir = resource_path(os.path.join(plyer.storagepath.get_downloads_dir(), "Manga"))
+        # Android related
+    
         # C:\Users\dimit\AppData\Roaming\mangadownloader\Manga 
-        self.manga_root_dir = resource_path(os.path.join(writable_dir, "Manga"))
 
         self.default_settings_vals = {
             'theme_mode':'Dark',
             'color_scheme':'Pink',
             'default_downloader': "rawdevart",
             'download_path': resource_path(self.manga_root_dir),
+            #'download_path': resource_path(os.path.join()),
             'manga_reading_direction': 'Swipe Horizontally', # Defaults to reading horizontally (swiping)
             'manga_swiping_direction':"Right to Left (English style)" # Defaults to English style: left to right
         }
-
     
     # Build the settings and sets their default values
     def build_config(self, config):
@@ -119,16 +121,11 @@ class MangaDownloader(MDApp):
     # This defines the path and name where the .ini file is located
     # On android, the client wont be able to view the config file with a file explorer
     def get_application_config(self):
-        from glob import glob
-        #return str(os.path.join(self.user_data_dir, 'mangadownloader.ini'))
-        if platform == "android":
-            for log in glob('*.ini'):
-                os.remove(log)
-
-        return str(os.path.join(self.manga_root_dir, 'mangadownloader.ini'))
+        return str(os.path.join(self.user_data_dir, 'mangadownloader.ini'))
      
     def build_settings(self, settings):
         settings.add_json_panel('Manga Downloader Settings', self.config, data=AppSettings.json_settings)
+
     # Method that builds all the GUI elements    
     def build(self):
         Window.bind(on_request_close=self.on_request_close) # Method called before app exit
@@ -170,14 +167,19 @@ class MangaDownloader(MDApp):
 
     def on_start(self, **kwargs):
         self.current_screen = self.screen_manager.get_screen(self.screen_manager.current)
+
         
         # The path where all manga will be downloaded to (default is manga root)
         # If it is changed while a manga is being downloaded an error will pop up
         self.download_path = resource_path(self.config.get("Settings", "download_path"))
+
+        print("Manga Root before if statement", self.manga_root_dir)
         
         # Initial Directory creation 
         # If the user has changed the default download path (AKA: the manga root path) then set the manga root to the newly set path
         self.manga_root_dir = self.download_path if self.manga_root_dir != self.download_path else self.manga_root_dir
+
+        print("manga root in start meth after if", self.manga_root_dir)
         self.english_manga_dir = resource_path(os.path.join(self.manga_root_dir, "English Manga"))
         self.japanese_manga_dir = resource_path(os.path.join(self.manga_root_dir, "Raw Japanese Manga"))
 
@@ -185,9 +187,7 @@ class MangaDownloader(MDApp):
             create_root_dir(self.manga_root_dir)
             create_language_dirs([self.english_manga_dir,self.japanese_manga_dir])
 
-        #os.path.expanduser("~") + "mangadownloader"
-        """ Sets the path to the log file. """
-        #plyer.get_external_storage_dir() ; plyer.storagepath.get_external_storage_dir()
+        # Set the directory for Logs    
         log_path = resource_path(os.path.join(self.manga_root_dir, 'logs'))
 
         if not os.path.exists(log_path):
@@ -206,21 +206,26 @@ class MangaDownloader(MDApp):
         pass
 
     # Keyboard Methods
+    #print("self:", self, "keyboard: ", keyboard,"key: ",key ,"scancode: ",scancode, "text: ",text, "modifiers: ",modifiers, "args*: ",*args)
+    #print('The key', keycode, 'have been pressed', ' - text is %r' % text, ' - modifiers are %r' % modifiers," - keyboard: - %r" % keyboard, sep="\n")
+    
+    # This method checks for any keyboard events that are bound to the window, normally a keyboard needs to be requested,
+    # but on android this caused the keyboard to appear on every screen.
     def _on_keyboard_down(self, keyboard, key, scancode, text, modifiers, *args):
-        #print("self:", self, "keyboard: ", keyboard,"key: ",key ,"scancode: ",scancode, "text: ",text, "modifiers: ",modifiers, "args*: ",*args)
-        #print('The key', keycode, 'have been pressed', ' - text is %r' % text, ' - modifiers are %r' % modifiers," - keyboard: - %r" % keyboard, sep="\n")
         if key in ["escape", 27]:#if keycode[1] in ["escape", 27]:
+
+            # Closes the settings page when 'escape' or the android back button are pressed
             settings_open = self.close_settings()
             if isinstance(self._app_settings, Settings): 
                 self.close_settings()
                 self.destroy_settings()
-                
+
+            # Prompts the dialog to quit the app, if the settings page is not open while the user is on the landing page    
             if self.current_screen.name == "Landing Page":
                 if not isinstance(self.dialog, ConfirmationDialog) and not settings_open:#not isinstance(self._app_settings, Settings): 
                     self.on_request_close()
                     self.dialog = None
-
-                #elif: 
+            # Normal functionality of switching to the previous screen
             else: 
                 switch_to_screen(self.current_screen.prev_screen)
             
@@ -279,8 +284,6 @@ class MangaDownloader(MDApp):
 
     # This method can handle any changes made to the settings, it also changes them when they are changed
     def on_config_change(self, config, section, key, value):
-        from kivy.uix.settings import Settings
-        #print("are settings open? ", self._app_settings, isinstance(self._app_settings, Settings))
         """
         This func exists because if the client changes the download path while downloading a manga
         then not all the chapters will be downloaded to the new path
@@ -294,7 +297,7 @@ class MangaDownloader(MDApp):
                 self.manga_root_dir = self.download_path = resource_path(self.config.get("Settings", "download_path"))
                 toast(f"Manga Download Path has been changed to {self.manga_root_dir}")
             except PermissionError: 
-                toast("Permission Error occurred; You maybe don't have access")
+                toast("Permission Error occurred: You maybe don't have access")
             except Exception as e:
                 print("Exception: ", e)
                 if root_src != new_root_dst: 
@@ -310,7 +313,7 @@ class MangaDownloader(MDApp):
             change_download_path()
 
         # A callback function for a confirmation dialog to confirm reseting all setting to their default values
-        def reset_settings_config(inst):
+        def reset_settings_config(inst, *args, **kwargs):
             if isinstance(self.dialog, MDDialog):
                 self.dialog.dismiss(force=True)
                 self.dialog = None

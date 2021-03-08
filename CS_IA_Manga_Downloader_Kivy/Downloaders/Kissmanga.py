@@ -56,7 +56,7 @@ class KissManga:
         title = re.sub(r'[\\/*?:"<>|]',"",title) # Sanitize title name for dir/file creation
         
         manga_download_link, cover_img_link = links
-        cover_img_filename = os.path.join(master.english_manga_dir,title, cover_img_link.split("/")[-1])
+        cover_img_filename = os.path.join(master.english_manga_dir,title, os.path.basename(cover_img_link))
         download_cover_img(cover_img_link, resource_path(cover_img_filename))
 
         # Parsing HTML for all the chapter links

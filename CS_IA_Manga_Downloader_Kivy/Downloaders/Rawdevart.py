@@ -7,7 +7,6 @@ from tqdm import tqdm
 
 from utils import download_cover_img, resource_path
 
-
 # Japanese Manga Downloader
 class RawDevArt:
     def __init__(self, query=None):
@@ -44,8 +43,10 @@ class RawDevArt:
         title = re.sub(r'[\\/*?:"<>|]',"",title) # Sanitize title name for dir/file creation
         
         manga_download_link, cover_img_link = links
-        cover_img_filename = os.path.join(master.japanese_manga_dir,title, cover_img_link.split("/")[-1])
-        download_cover_img(cover_img_link, resource_path(cover_img_filename))               
+        #cover_img_filename = os.path.join(master.japanese_manga_dir,title, cover_img_link.split("/")[-1])
+        cover_img_filename = os.path.join(master.japanese_manga_dir,title, os.path.basename(cover_img_link))
+        download_cover_img(cover_img_link, resource_path(cover_img_filename))
+        print("cover image link: ", cover_img_link, "basename: ", os.path.basename(cover_img_link))               
         
 
         soup = BeautifulSoup(requests.get(manga_download_link).content, features="lxml")
@@ -91,12 +92,9 @@ class RawDevArt:
         progress_bar.close()
         Clock.schedule_once(lambda *args: tile.reset_progressbar(), 1) 
         
-        
-
     @staticmethod
     def trigger_call(tile,val):
         tile.progressbar.value += val
-
 
     @staticmethod
     def download_img(img_url, title, chapter_name, chapter_dir):
